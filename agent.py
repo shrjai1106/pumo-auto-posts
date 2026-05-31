@@ -27,8 +27,7 @@ ANTHROPIC_API_KEY   = os.environ.get('ANTHROPIC_API_KEY', '')
 ELEVENLABS_API_KEY  = os.environ.get('ELEVENLABS_API_KEY', '')
 PEXELS_API_KEY      = os.environ.get('PEXELS_API_KEY', '')
 UPLOAD_POST_API_KEY = os.environ.get('UPLOAD_POST_API_KEY', '')
-INSTAGRAM_USERNAME  = 'pumo_technovation_malaysia'
-
+INSTAGRAM_USERNAME  = 'Pumo_Profile'
 
 # ============================================================
 # COURSE ROTATION
@@ -593,10 +592,11 @@ def post_to_instagram(video_path, content):
             "https://api.upload-post.com/api/upload",
             headers={"Authorization": f"Apikey {UPLOAD_POST_API_KEY}"},
             data={
-                "title":      full_cap,
+               "title":      full_cap,
                 "user":       INSTAGRAM_USERNAME,
                 "platform[]": "instagram",
-                "media_type": "REELS"
+                "media_type": "REELS",
+                "instagram_account_id": "pumo_technovation_malaysia"
             },
             files={"video": ("pumo_video.mp4", f, "video/mp4")}
         )
