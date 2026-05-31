@@ -1,0 +1,1 @@
+# pumo-auto-posts
