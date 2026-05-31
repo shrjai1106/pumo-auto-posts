@@ -481,7 +481,7 @@ def edit_video(clip_paths, audio_path, content):
         combined
     ], check=True, capture_output=True)
 
-    # 4c — Build caption overlays
+    # 4c — Build caption overlays (hardcoded pixel positions, no decimals)
     captions     = content.get('captions', [])
     hook_text    = safe_text(content.get('hook', '')[:55])
     course_name  = safe_text(content['course']['name'])
@@ -490,73 +490,70 @@ def edit_video(clip_paths, audio_path, content):
 
     drawtext_parts = []
 
-    # Hook — massive text, first 4 seconds, splits to 2 lines if needed
+    # Hook — top area, first 4 seconds
     hook_words = hook_text.split()
     if len(hook_words) > 5:
-        mid = len(hook_words) // 2
+        mid   = len(hook_words) // 2
         line1 = safe_text(' '.join(hook_words[:mid]))
         line2 = safe_text(' '.join(hook_words[mid:]))
         drawtext_parts.append(
-            f"drawtext=text='{line1}'"
-            f":fontsize=64:fontcolor=white:borderw=5:bordercolor=black@0.95"
-            f":x=(w-text_w)/2:y=h*0.08:enable='between(t,0,4)'"
+            f"drawtext=text='{line1}':fontsize=64:fontcolor=white"
+            f":borderw=5:bordercolor=black"
+            f":x=(w-text_w)/2:y=150:enable='between(t,0,4)'"
             f":font=DejaVu-Sans-Bold"
         )
         drawtext_parts.append(
-            f"drawtext=text='{line2}'"
-            f":fontsize=64:fontcolor=white:borderw=5:bordercolor=black@0.95"
-            f":x=(w-text_w)/2:y=h*0.17:enable='between(t,0,4)'"
+            f"drawtext=text='{line2}':fontsize=64:fontcolor=white"
+            f":borderw=5:bordercolor=black"
+            f":x=(w-text_w)/2:y=230:enable='between(t,0,4)'"
             f":font=DejaVu-Sans-Bold"
         )
     else:
         drawtext_parts.append(
-            f"drawtext=text='{hook_text}'"
-            f":fontsize=64:fontcolor=white:borderw=5:bordercolor=black@0.95"
-            f":x=(w-text_w)/2:y=h*0.10:enable='between(t,0,4)'"
+            f"drawtext=text='{hook_text}':fontsize=64:fontcolor=white"
+            f":borderw=5:bordercolor=black"
+            f":x=(w-text_w)/2:y=180:enable='between(t,0,4)'"
             f":font=DejaVu-Sans-Bold"
         )
 
-    # Timed captions — yellow bold, semi-transparent box, fade in effect
+    # Timed captions — 1420px from top (lower screen), yellow bold
     for i, caption in enumerate(captions):
         start    = i * cap_duration
         end      = (i + 1) * cap_duration
         cap_text = safe_text(str(caption)[:50])
-
-        # Main caption text
         drawtext_parts.append(
-            f"drawtext=text='{cap_text}'"
-            f":fontsize=58:fontcolor=yellow:borderw=5:bordercolor=black@0.95"
+            f"drawtext=text='{cap_text}':fontsize=56:fontcolor=yellow"
+            f":borderw=5:bordercolor=black"
             f":box=1:boxcolor=black@0.4:boxborderw=14"
-            f":x=(w-text_w)/2:y=h*0.74"
-            f":enable='between(t,{start:.2f},{end:.2f})'"
+            f":x=(w-text_w)/2:y=1420"
+            f":enable='between(t,{int(start)},{int(end)})'"
             f":font=DejaVu-Sans-Bold"
         )
 
-    # HRD Corp claimable badge — shows from 10s to 20s
+    # HRD Corp badge — green, shows 10-20 seconds, 1680px from top
     drawtext_parts.append(
-        f"drawtext=text='✓ HRD Corp Claimable'"
-        f":fontsize=32:fontcolor=white:borderw=2:bordercolor=black@0.9"
-        f":box=1:boxcolor=green@0.7:boxborderw=10"
-        f":x=(w-text_w)/2:y=h*0.88"
-        f":enable='between(t,10,20)'"
+        f"drawtext=text='HRD Corp Claimable':fontsize=32:fontcolor=white"
+        f":borderw=2:bordercolor=black"
+        f":box=1:boxcolor=0x2ecc71@0.85:boxborderw=10"
+        f":x=(w-text_w)/2:y=1680:enable='between(t,10,20)'"
         f":font=DejaVu-Sans-Bold"
     )
 
-    # Course badge — top right always
+    # Course badge — top right, always visible, 24px from top
     drawtext_parts.append(
-        f"drawtext=text='{course_name}'"
-        f":fontsize=30:fontcolor=white:borderw=2:bordercolor=black@0.9"
+        f"drawtext=text='{course_name}':fontsize=30:fontcolor=white"
+        f":borderw=2:bordercolor=black"
         f":box=1:boxcolor=black@0.6:boxborderw=12"
         f":x=w-text_w-24:y=24"
         f":font=DejaVu-Sans-Bold"
     )
 
-    # PUMO branding — bottom always
+    # PUMO branding — bottom, 1800px from top
     drawtext_parts.append(
-        f"drawtext=text='{branding}'"
-        f":fontsize=28:fontcolor=white:borderw=2:bordercolor=black@0.9"
+        f"drawtext=text='{branding}':fontsize=28:fontcolor=white"
+        f":borderw=2:bordercolor=black"
         f":box=1:boxcolor=black@0.65:boxborderw=10"
-        f":x=(w-text_w)/2:y=h*0.938"
+        f":x=(w-text_w)/2:y=1800"
         f":font=DejaVu-Sans"
     )
 
