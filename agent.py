@@ -407,16 +407,16 @@ def process_clip_with_zoom(clip_path, out_path, duration, zoom_direction="in"):
             "scale=1440:2560:force_original_aspect_ratio=increase,"
             "crop=1080:1920,"
             "setsar=1,"
-            f"zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-            f":d={int(duration*30)}:s=1080x1920:fps=30"
+            f"zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(duration*30)}:s=1080x1920"
+            f":fps=30"
         )
     else:
         zoom_filter = (
             "scale=1440:2560:force_original_aspect_ratio=increase,"
             "crop=1080:1920,"
             "setsar=1,"
-            f"zoompan=z='max(1.08-zoom*0.0008,1.0)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-            f":d={int(duration*30)}:s=1080x1920:fps=30"
+           f"zoompan=z='max(1.08-zoom*0.0008,1.0)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(duration*30)}:s=1080x1920"
+          f":fps=30"
         )
 
     result = subprocess.run([
