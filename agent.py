@@ -193,7 +193,6 @@ def render_with_creatomate(content):
 
     scenes = content['scenes']
 
-    # Build modifications — image prompt + voiceover text per scene
     modifications = {}
     for i, scene in enumerate(scenes[:6]):
         scene_num = i + 1
@@ -214,12 +213,11 @@ def render_with_creatomate(content):
         json=payload
     )
 
-   if response.status_code not in (200, 201, 202):
+    if response.status_code not in (200, 201, 202):
         print(f"❌ Creatomate error: {response.status_code} — {response.text}")
         sys.exit(1)
 
     renders = response.json()
-    # Response is a list of render objects
     if isinstance(renders, list):
         render = renders[0]
     else:
@@ -228,7 +226,7 @@ def render_with_creatomate(content):
     render_id = render.get('id', '')
     print(f"   ✓ Render started — ID: {render_id}")
     print(f"   ⏳ Waiting for Creatomate to render...")
-    print(f"   (This takes 2-5 minutes — AI generating images + voiceover + editing)")
+    print(f"   (This takes 2-5 minutes)")
 
     return render_id
 
