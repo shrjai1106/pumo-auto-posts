@@ -29,7 +29,7 @@ PEXELS_API_KEY      = os.environ.get('PEXELS_API_KEY', '')
 UPLOAD_POST_API_KEY = os.environ.get('UPLOAD_POST_API_KEY', '')
 
 # Your Upload-Post username for Instagram
-INSTAGRAM_USERNAME  = 'pumo_technovatio_malaysia'
+INSTAGRAM_USERNAME  = 'pumo_technovation_malaysia'
 
 
 # ============================================================
