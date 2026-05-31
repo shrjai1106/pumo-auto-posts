@@ -556,13 +556,19 @@ def edit_video(clip_paths, audio_path, content):
         f":font=DejaVu-Sans"
     )
 
-    # 4d — Final render
+     # 4d — Final render
     print("   Rendering final 60-second video...")
     output = "/tmp/pumo_final.mp4"
+    
+    # Write filter to a file to avoid shell escaping issues
+    filter_script = "/tmp/filters.txt"
+    with open(filter_script, 'w') as f:
+        f.write(','.join(drawtext_parts))
+    
     result = subprocess.run([
         'ffmpeg', '-y',
         '-i', combined, '-i', audio_path,
-        '-vf', ','.join(drawtext_parts),
+        '-filter_script:v', filter_script,
         '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
         '-c:a', 'aac', '-b:a', '128k',
         '-map', '0:v:0', '-map', '1:a:0',
