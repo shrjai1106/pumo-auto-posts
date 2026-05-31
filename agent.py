@@ -214,7 +214,7 @@ def render_with_creatomate(content):
         json=payload
     )
 
-    if response.status_code not in (200, 201):
+   if response.status_code not in (200, 201, 202):
         print(f"❌ Creatomate error: {response.status_code} — {response.text}")
         sys.exit(1)
 
