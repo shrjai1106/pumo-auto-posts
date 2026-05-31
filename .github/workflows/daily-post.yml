@@ -1,36 +1,29 @@
 name: PUMO Daily Instagram Agent
-
 on:
   schedule:
     - cron: '0 1 * * *'
   workflow_dispatch:
-
 jobs:
   create-and-post:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
       - name: Install FFmpeg and fonts
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg fonts-dejavu espeak
-
       - name: Install Python dependencies
         run: pip install requests
-
       - name: Run PUMO Agent
         env:
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
-          ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
-          PEXELS_API_KEY:      ${{ secrets.PEXELS_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           UPLOAD_POST_API_KEY: ${{ secrets.UPLOAD_POST_API_KEY }}
         run: python agent.py
