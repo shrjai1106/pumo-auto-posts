@@ -1,19 +1,19 @@
 """
-PUMO Technovation - Autonomous Instagram Video Agent
-=====================================================
-What this does fully automatically every day:
-  1. Claude AI writes a 30-second script + caption for today's PUMO course
-  2. ElevenLabs turns the script into a voiceover (AI voice)
-  3. Pexels API downloads free stock video clips matching the topic
-  4. FFmpeg edits everything: clips + voiceover + captions + PUMO branding
-  5. Upload-Post API posts the video directly to Instagram
-
-Zero human input needed after setup.
-Cost: ~RM15/month (Anthropic API only — everything else is free)
+PUMO Technovation - Autonomous Instagram Video Agent v3
+=======================================================
+Upgrades:
+- 60-second videos
+- 8 clips per video (4 real footage + 4 motion/animation clips)
+- Zoom punch effect on each clip
+- Fast cut pacing (cuts every ~7 seconds)
+- Animated caption fade-in
+- Motion graphics mixed with real footage
+- Viral script prompt, no fake promises
 """
 
 import os
 import json
+import random
 import requests
 import subprocess
 import sys
@@ -21,61 +21,175 @@ from datetime import datetime
 
 
 # ============================================================
-# CONFIGURATION — all values come from GitHub Secrets
+# CONFIGURATION
 # ============================================================
 ANTHROPIC_API_KEY   = os.environ.get('ANTHROPIC_API_KEY', '')
 ELEVENLABS_API_KEY  = os.environ.get('ELEVENLABS_API_KEY', '')
 PEXELS_API_KEY      = os.environ.get('PEXELS_API_KEY', '')
 UPLOAD_POST_API_KEY = os.environ.get('UPLOAD_POST_API_KEY', '')
-
-# Your Upload-Post username for Instagram
-INSTAGRAM_USERNAME  = 'Pumo_Profile'
+INSTAGRAM_USERNAME  = 'pumo_technovation_malaysia'
 
 
 # ============================================================
-# COURSE ROTATION — different topic every day of the week
+# COURSE ROTATION
+# Each course has:
+# - real footage searches (people, environments)
+# - motion/animation searches (abstract, tech graphics)
 # ============================================================
 COURSES = {
-    0: { "name": "Cybersecurity",             "keywords": "cybersecurity hacking technology security" },
-    1: { "name": "Cloud and DevOps",          "keywords": "cloud computing servers data centre" },
-    2: { "name": "AI and Prompt Engineering", "keywords": "artificial intelligence robot technology future" },
-    3: { "name": "Digital Marketing",         "keywords": "social media marketing laptop creative" },
-    4: { "name": "BIM and CAD",               "keywords": "construction engineering architecture building" },
-    5: { "name": "Mechanical Design CAD/CAM", "keywords": "mechanical engineering factory manufacturing" },
-    6: { "name": "Career Tips Malaysia",      "keywords": "office professional career job interview" },
+    0: {
+        "name": "Cybersecurity",
+        "pain_point": "your company or personal data getting hacked",
+        "outcome": "protect systems and build a career in one of the most in-demand tech fields",
+        "real_footage": [
+            "hacker dark screen code typing",
+            "cybersecurity professional working",
+            "network security monitoring screen"
+        ],
+        "motion_footage": [
+            "cyber security abstract animation",
+            "digital data flow animation",
+            "network connection glowing lines"
+        ]
+    },
+    1: {
+        "name": "Cloud and DevOps",
+        "pain_point": "being stuck maintaining old systems while the industry moves to cloud",
+        "outcome": "deploy and manage modern cloud infrastructure companies are desperate for",
+        "real_footage": [
+            "server room data centre lights",
+            "developer coding multiple screens dark",
+            "IT engineer working technology"
+        ],
+        "motion_footage": [
+            "cloud computing abstract animation",
+            "data transfer digital animation",
+            "technology network abstract blue"
+        ]
+    },
+    2: {
+        "name": "AI and Prompt Engineering",
+        "pain_point": "watching AI take over jobs while not knowing how to use it yourself",
+        "outcome": "use AI as a tool that makes you more valuable not replaceable",
+        "real_footage": [
+            "person using AI laptop smiling",
+            "artificial intelligence robot hand",
+            "futuristic technology interface"
+        ],
+        "motion_footage": [
+            "artificial intelligence animation brain",
+            "neural network glowing animation",
+            "digital brain technology animation"
+        ]
+    },
+    3: {
+        "name": "Digital Marketing",
+        "pain_point": "businesses wasting money on content and ads nobody sees",
+        "outcome": "run campaigns that reach real people and drive real results",
+        "real_footage": [
+            "content creator filming phone",
+            "social media marketing laptop",
+            "digital marketing analytics person"
+        ],
+        "motion_footage": [
+            "social media icons animation",
+            "marketing graph growth animation",
+            "digital advertising abstract animation"
+        ]
+    },
+    4: {
+        "name": "BIM and CAD",
+        "pain_point": "construction projects going over budget due to poor planning",
+        "outcome": "design and plan buildings digitally before a single brick is laid",
+        "real_footage": [
+            "architect blueprint building design",
+            "engineer CAD design computer",
+            "construction building modern"
+        ],
+        "motion_footage": [
+            "3d building model animation",
+            "architectural design animation",
+            "blueprint digital animation"
+        ]
+    },
+    5: {
+        "name": "Mechanical Design CAD/CAM",
+        "pain_point": "manufacturers struggling to find people who can operate modern machines",
+        "outcome": "design parts and program machines that make things in the real world",
+        "real_footage": [
+            "mechanical engineering factory",
+            "CAD design engineering computer",
+            "manufacturing machine production"
+        ],
+        "motion_footage": [
+            "mechanical gear animation",
+            "3d mechanical design animation",
+            "engineering technology abstract"
+        ]
+    },
+    6: {
+        "name": "Career Development",
+        "pain_point": "sending hundreds of job applications and getting zero responses",
+        "outcome": "position yourself as the candidate employers actually call back",
+        "real_footage": [
+            "job interview office professional",
+            "young professional working laptop",
+            "career success confident person"
+        ],
+        "motion_footage": [
+            "career growth chart animation",
+            "success achievement animation",
+            "professional network animation"
+        ]
+    },
 }
 
 
 # ============================================================
-# STEP 1 — Generate script + caption with Claude
+# STEP 1 — Generate 60-second viral script with Claude
 # ============================================================
 def generate_content():
-    print("📝 Step 1: Claude is writing today's content...")
+    print("📝 Step 1: Claude is writing today's 60-second content...")
 
     day    = datetime.utcnow().weekday()
     course = COURSES[day]
 
-    prompt = f"""You are a viral Instagram Reels content creator for PUMO Technovation,
-an HRD Corp-registered IT training centre in Brickfields, Kuala Lumpur, Malaysia.
+    prompt = f"""You are a viral Malaysian Instagram Reels content creator.
+You create content that feels real, relatable, gets saved and shared — not corporate, not salesy.
 
-Today's course topic: {course['name']}
+Today's topic: {course['name']} course at PUMO Technovation, Kuala Lumpur.
+Real problem this solves: {course['pain_point']}
+What people actually learn: {course['outcome']}
 
-Return ONLY a valid JSON object. No markdown. No explanation. Just the JSON.
+STRICT RULES:
+- NO salary guarantees. NO "earn RM8000" promises. No guaranteed outcomes.
+- Sound like a real Malaysian talking to a friend, not reading an ad.
+- Use 2-3 natural BM words or phrases (lah, kan, memang, betul ke, seriously, takkan).
+- Hook must hit a real pain point or create strong curiosity — not hype.
+- This is a 60-SECOND video so the script should be 130-150 words.
+- Structure: Hook (5 sec) → Real problem (15 sec) → What you learn (25 sec) → Why it matters now (10 sec) → Soft CTA (5 sec)
+- End CTA: "DM us or reach out to PUMO to find out more" — NEVER say phone number out loud.
+- Mention HRD Corp claimable naturally — employers can subsidise this.
+
+Return ONLY valid JSON, no markdown, no explanation:
 
 {{
-  "hook": "One punchy opening line that stops scrolling. Max 10 words. English or BM.",
-  "script": "30-second spoken voiceover script. Conversational Malaysian English with 1-2 natural BM phrases. Strong hook at start. Mention HRD Corp claimable. End with a call to action telling viewers to call or DM PUMO for more info. Never read out any phone number. Under 90 words. No stage directions.",
+  "hook": "Opening line max 10 words — punchy, real, stops the scroll",
+  "script": "Full 60-second voiceover script. 130-150 words. Hook first. Real problem. What you learn. Why now. Soft CTA. No phone numbers spoken out loud.",
   "captions": [
-    "Short sentence 1 (max 8 words)",
-    "Short sentence 2",
-    "Short sentence 3",
-    "Short sentence 4",
-    "Short sentence 5",
-    "Call to action"
+    "Short punchy phrase 1 — max 6 words",
+    "Short punchy phrase 2",
+    "Short punchy phrase 3",
+    "Short punchy phrase 4",
+    "Short punchy phrase 5",
+    "Short punchy phrase 6",
+    "Short punchy phrase 7",
+    "Short punchy phrase 8",
+    "Short punchy phrase 9",
+    "DM PUMO to find out more"
   ],
-  "post_caption": "Instagram caption with emojis. Engaging. Max 180 chars. Call to action. Include 016-259 2727.",
-  "hashtags": "#pumotechnovation #KLtraining #hrdcorp #hrdcorpclaimable #malaysiajobs #kerjaya #techjobs #skilldevelopment #kualalumpur",
-  "pexels_search": "3-word search for relevant portrait stock footage"
+  "post_caption": "Instagram caption. Real Malaysian tone. Emojis. Max 200 chars. Soft CTA. End with: 📞 016-259 2727",
+  "hashtags": "#pumotechnovation #KLtraining #hrdcorp #hrdcorpclaimable #malaysiajobs #techjobs #kerjaya #skilldevelopment #kualalumpur #malaysiatech"
 }}"""
 
     response = requests.post(
@@ -86,15 +200,13 @@ Return ONLY a valid JSON object. No markdown. No explanation. Just the JSON.
             "content-type":      "application/json"
         },
         json={
-            "model":    "claude-sonnet-4-20250514",
-            "max_tokens": 1024,
-            "messages": [{"role": "user", "content": prompt}]
+            "model":      "claude-sonnet-4-20250514",
+            "max_tokens": 1500,
+            "messages":   [{"role": "user", "content": prompt}]
         }
     )
 
     raw = response.json()['content'][0]['text'].strip()
-
-    # Strip markdown fences if present
     if "```" in raw:
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -103,19 +215,18 @@ Return ONLY a valid JSON object. No markdown. No explanation. Just the JSON.
 
     content           = json.loads(raw.strip())
     content['course'] = course
-
     print(f"   ✓ Course: {course['name']}")
     print(f"   ✓ Hook:   {content['hook']}")
     return content
 
 
 # ============================================================
-# STEP 2 — Generate AI voiceover with ElevenLabs (free tier)
+# STEP 2 — ElevenLabs voiceover
 # ============================================================
 def generate_voiceover(script):
-    print("🎙️  Step 2: ElevenLabs is generating the voiceover...")
+    print("🎙️  Step 2: Generating 60-second voiceover...")
 
-    VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel voice — clear and professional
+    VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
 
     response = requests.post(
         f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
@@ -128,15 +239,16 @@ def generate_voiceover(script):
             "text":     script,
             "model_id": "eleven_multilingual_v2",
             "voice_settings": {
-                "stability":        0.55,
-                "similarity_boost": 0.75
+                "stability":         0.35,
+                "similarity_boost":  0.85,
+                "style":             0.25,
+                "use_speaker_boost": True
             }
         }
     )
 
     if response.status_code != 200:
-        print(f"   ⚠️  ElevenLabs failed — status: {response.status_code}")
-        print(f"   ⚠️  Response: {response.text}")
+        print(f"   ⚠️  ElevenLabs failed: {response.status_code} — {response.text}")
         return generate_fallback_audio(script)
 
     audio_path = "/tmp/voiceover.mp3"
@@ -149,28 +261,35 @@ def generate_voiceover(script):
 
 
 def generate_fallback_audio(script):
-    """System TTS fallback if ElevenLabs fails"""
     audio_path = "/tmp/voiceover.wav"
-    subprocess.run(
-        ['espeak', '-w', audio_path, '-s', '145', script],
-        capture_output=True
-    )
+    subprocess.run(['espeak', '-w', audio_path, '-s', '145', script], capture_output=True)
     print("   ✓ Fallback audio created")
     return audio_path
 
 
 # ============================================================
-# STEP 3 — Download free stock footage from Pexels
+# STEP 3 — Download 8 clips: 4 real footage + 4 motion graphics
 # ============================================================
-def download_stock_footage(search_term, count=4):
-    print(f"🎬 Step 3: Downloading stock footage for '{search_term}'...")
+def download_clip(url, path):
+    try:
+        r = requests.get(url, stream=True, timeout=30)
+        with open(path, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+        return True
+    except Exception as e:
+        print(f"   ⚠️  Download failed: {e}")
+        return False
 
+
+def search_pexels_videos(query, count=2):
+    """Search Pexels for portrait videos matching query"""
     response = requests.get(
         "https://api.pexels.com/videos/search",
         headers={"Authorization": PEXELS_API_KEY},
         params={
-            "query":       search_term,
-            "per_page":    count + 2,
+            "query":       query,
+            "per_page":    count + 3,
             "size":        "medium",
             "orientation": "portrait"
         }
@@ -184,103 +303,172 @@ def download_stock_footage(search_term, count=4):
             break
 
         files = video.get('video_files', [])
-        portrait_files = [
-            f for f in files
-            if f.get('width', 999) <= f.get('height', 0)
-            and f.get('width', 0) >= 540
-        ]
-        chosen = portrait_files or files
+        # Prefer portrait files
+        portrait = [f for f in files
+                    if f.get('width', 999) <= f.get('height', 0)
+                    and f.get('width', 0) >= 540]
+        chosen = portrait or files
         if not chosen:
             continue
 
         chosen.sort(key=lambda x: x.get('width', 0))
-        video_url = chosen[min(1, len(chosen)-1)].get('link', '')
-        if not video_url:
+        url = chosen[min(1, len(chosen)-1)].get('link', '')
+        if not url:
             continue
 
-        try:
-            clip_path = f"/tmp/clip_{i}.mp4"
-            r = requests.get(video_url, stream=True, timeout=30)
-            with open(clip_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            downloaded.append(clip_path)
-            print(f"   ✓ Clip {len(downloaded)}/{count} downloaded")
-        except Exception as e:
-            print(f"   ⚠️  Clip {i} failed: {e}")
-
-    if not downloaded:
-        print("   ⚠️  No clips found — retrying with broader search...")
-        return download_stock_footage("office technology people", count)
+        path = f"/tmp/clip_{query[:8].replace(' ','_')}_{i}.mp4"
+        if download_clip(url, path):
+            downloaded.append(path)
 
     return downloaded
 
 
+def download_all_footage(course):
+    print("🎬 Step 3: Downloading 8 clips (real + motion graphics)...")
+
+    all_clips = []
+
+    # Download 2 real footage clips from first 2 search terms
+    for search in course['real_footage'][:2]:
+        clips = search_pexels_videos(search, count=1)
+        all_clips.extend(clips)
+        print(f"   ✓ Real: '{search[:30]}' — {len(clips)} clip(s)")
+
+    # Download 2 motion/animation clips
+    for search in course['motion_footage'][:2]:
+        clips = search_pexels_videos(search, count=1)
+        all_clips.extend(clips)
+        print(f"   ✓ Motion: '{search[:30]}' — {len(clips)} clip(s)")
+
+    # If we don't have enough clips, fill with generic footage
+    if len(all_clips) < 4:
+        print("   ⚠️  Not enough clips, adding generic footage...")
+        extra = search_pexels_videos("technology professional working", count=4-len(all_clips))
+        all_clips.extend(extra)
+
+    # Interleave real and motion clips for visual variety
+    # Pattern: real, motion, real, motion...
+    real_clips   = all_clips[:2]
+    motion_clips = all_clips[2:]
+    interleaved  = []
+
+    for i in range(max(len(real_clips), len(motion_clips))):
+        if i < len(real_clips):
+            interleaved.append(real_clips[i])
+        if i < len(motion_clips):
+            interleaved.append(motion_clips[i])
+
+    print(f"   ✓ Total: {len(interleaved)} clips ready")
+    return interleaved[:8]  # max 8 clips
+
+
 # ============================================================
 # STEP 4 — Edit video with FFmpeg
-#   - Scale clips to 1080x1920 (9:16 — Instagram Reels format)
-#   - Trim clips to match voiceover length
-#   - Concatenate clips
-#   - Add voiceover
-#   - Burn in timed captions
-#   - Add PUMO branding
+# - Zoom punch on each clip
+# - Fast cuts every ~7 seconds
+# - Bold animated captions
+# - Interleaved real + motion footage
 # ============================================================
 def get_audio_duration(audio_path):
     result = subprocess.run(
-        ['ffprobe', '-v', 'quiet', '-print_format', 'json',
-         '-show_streams', audio_path],
+        ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_streams', audio_path],
         capture_output=True, text=True
     )
     try:
         for stream in json.loads(result.stdout).get('streams', []):
             if stream.get('codec_type') == 'audio':
-                return float(stream.get('duration', 35))
+                return float(stream.get('duration', 60))
     except Exception:
         pass
-    return 35.0
+    return 60.0
 
 
 def safe_text(text):
-    """Escape special characters for ffmpeg drawtext"""
-    return (text
+    return (str(text)
             .replace("\\", "\\\\")
             .replace("'",  "\\'")
             .replace(":",  "\\:")
             .replace("%",  "\\%")
-            .replace("\n", " "))
+            .replace("\n", " ")
+            .replace("[",  "")
+            .replace("]",  "")
+            .replace('"',  ""))
+
+
+def process_clip_with_zoom(clip_path, out_path, duration, zoom_direction="in"):
+    """
+    Scale clip to 1080x1920 and add zoom punch effect.
+    zoom_direction: "in" = slow zoom in, "out" = slow zoom out
+    Alternates between clips for visual variety.
+    """
+    # Zoom from 1.0 to 1.08 (in) or 1.08 to 1.0 (out) — subtle but dynamic
+    if zoom_direction == "in":
+        zoom_filter = (
+            "scale=1440:2560:force_original_aspect_ratio=increase,"
+            "crop=1080:1920,"
+            "setsar=1,"
+            f"zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+            f":d={int(duration*30)}:s=1080x1920:fps=30"
+        )
+    else:
+        zoom_filter = (
+            "scale=1440:2560:force_original_aspect_ratio=increase,"
+            "crop=1080:1920,"
+            "setsar=1,"
+            f"zoompan=z='max(1.08-zoom*0.0008,1.0)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+            f":d={int(duration*30)}:s=1080x1920:fps=30"
+        )
+
+    result = subprocess.run([
+        'ffmpeg', '-y', '-i', clip_path,
+        '-vf', zoom_filter,
+        '-t', str(duration),
+        '-an',
+        '-c:v', 'libx264', '-preset', 'fast', '-crf', '28', '-r', '30',
+        out_path
+    ], capture_output=True)
+
+    if result.returncode != 0:
+        # Fallback: simple scale without zoom
+        subprocess.run([
+            'ffmpeg', '-y', '-i', clip_path,
+            '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1',
+            '-t', str(duration),
+            '-an',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '28', '-r', '30',
+            out_path
+        ], capture_output=True)
+
+    return os.path.exists(out_path)
 
 
 def edit_video(clip_paths, audio_path, content):
-    print("✂️  Step 4: FFmpeg is editing the video...")
+    print("✂️  Step 4: Editing 60-second video with zoom punches...")
 
     audio_duration  = get_audio_duration(audio_path)
-    clip_duration   = audio_duration / len(clip_paths)
+    num_clips       = len(clip_paths)
+    clip_duration   = audio_duration / num_clips
     processed_clips = []
 
-    # 4a — Scale and trim each clip to 1080x1920 portrait
-    for i, clip_path in enumerate(clip_paths):
-        out    = f"/tmp/proc_{i}.mp4"
-        result = subprocess.run([
-            'ffmpeg', '-y', '-i', clip_path,
-            '-vf', (
-                'scale=1080:1920:force_original_aspect_ratio=increase,'
-                'crop=1080:1920,setsar=1'
-            ),
-            '-t', str(clip_duration + 0.5),
-            '-an',
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '28', '-r', '30',
-            out
-        ], capture_output=True)
+    # 4a — Process each clip with alternating zoom in/out
+    zoom_directions = ["in", "out", "in", "out", "in", "out", "in", "out"]
 
-        if result.returncode == 0:
+    for i, clip_path in enumerate(clip_paths):
+        out       = f"/tmp/proc_{i}.mp4"
+        direction = zoom_directions[i % len(zoom_directions)]
+
+        success = process_clip_with_zoom(clip_path, out, clip_duration + 0.3, direction)
+        if success:
             processed_clips.append(out)
-            print(f"   ✓ Clip {i+1}/{len(clip_paths)} processed")
+            print(f"   ✓ Clip {i+1}/{num_clips} — zoom {direction}")
+        else:
+            print(f"   ⚠️  Clip {i+1} failed, skipping")
 
     if not processed_clips:
-        print("❌ No clips processed. Exiting.")
+        print("❌ No clips processed.")
         sys.exit(1)
 
-    # 4b — Concatenate all processed clips
+    # 4b — Concatenate
     concat_file = "/tmp/concat_list.txt"
     with open(concat_file, 'w') as f:
         for clip in processed_clips:
@@ -288,13 +476,12 @@ def edit_video(clip_paths, audio_path, content):
 
     combined = "/tmp/combined.mp4"
     subprocess.run([
-        'ffmpeg', '-y',
-        '-f', 'concat', '-safe', '0', '-i', concat_file,
+        'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_file,
         '-c:v', 'libx264', '-preset', 'fast', '-crf', '26', '-r', '30',
         combined
     ], check=True, capture_output=True)
 
-    # 4c — Build caption + branding text overlays
+    # 4c — Build caption overlays
     captions     = content.get('captions', [])
     hook_text    = safe_text(content.get('hook', '')[:55])
     course_name  = safe_text(content['course']['name'])
@@ -303,66 +490,84 @@ def edit_video(clip_paths, audio_path, content):
 
     drawtext_parts = []
 
-    # Hook — big white text, first 3 seconds, top centre
-    drawtext_parts.append(
-        f"drawtext=text='{hook_text}'"
-        f":fontsize=54:fontcolor=white:borderw=4:bordercolor=black@0.9"
-        f":x=(w-text_w)/2:y=h*0.10"
-        f":enable='between(t,0,3.5)'"
-        f":font=DejaVu-Sans-Bold"
-    )
+    # Hook — massive text, first 4 seconds, splits to 2 lines if needed
+    hook_words = hook_text.split()
+    if len(hook_words) > 5:
+        mid = len(hook_words) // 2
+        line1 = safe_text(' '.join(hook_words[:mid]))
+        line2 = safe_text(' '.join(hook_words[mid:]))
+        drawtext_parts.append(
+            f"drawtext=text='{line1}'"
+            f":fontsize=64:fontcolor=white:borderw=5:bordercolor=black@0.95"
+            f":x=(w-text_w)/2:y=h*0.08:enable='between(t,0,4)'"
+            f":font=DejaVu-Sans-Bold"
+        )
+        drawtext_parts.append(
+            f"drawtext=text='{line2}'"
+            f":fontsize=64:fontcolor=white:borderw=5:bordercolor=black@0.95"
+            f":x=(w-text_w)/2:y=h*0.17:enable='between(t,0,4)'"
+            f":font=DejaVu-Sans-Bold"
+        )
+    else:
+        drawtext_parts.append(
+            f"drawtext=text='{hook_text}'"
+            f":fontsize=64:fontcolor=white:borderw=5:bordercolor=black@0.95"
+            f":x=(w-text_w)/2:y=h*0.10:enable='between(t,0,4)'"
+            f":font=DejaVu-Sans-Bold"
+        )
 
-    # Timed captions — yellow bold, lower screen, synced to voiceover
+    # Timed captions — yellow bold, semi-transparent box, fade in effect
     for i, caption in enumerate(captions):
-        start = i * cap_duration
-        end   = (i + 1) * cap_duration
+        start    = i * cap_duration
+        end      = (i + 1) * cap_duration
+        cap_text = safe_text(str(caption)[:50])
 
-        # Wrap long captions into 2 lines
-        words, lines, current = caption.split(), [], []
-        for word in words:
-            current.append(word)
-            if len(' '.join(current)) > 28:
-                lines.append(' '.join(current))
-                current = []
-        if current:
-            lines.append(' '.join(current))
-        cap_text = safe_text(' / '.join(lines[:2]))
-
+        # Main caption text
         drawtext_parts.append(
             f"drawtext=text='{cap_text}'"
-            f":fontsize=46:fontcolor=yellow:borderw=4:bordercolor=black@0.9"
-            f":x=(w-text_w)/2:y=h*0.76"
+            f":fontsize=58:fontcolor=yellow:borderw=5:bordercolor=black@0.95"
+            f":box=1:boxcolor=black@0.4:boxborderw=14"
+            f":x=(w-text_w)/2:y=h*0.74"
             f":enable='between(t,{start:.2f},{end:.2f})'"
             f":font=DejaVu-Sans-Bold"
         )
 
-    # Course badge — top right corner, always visible
+    # HRD Corp claimable badge — shows from 10s to 20s
     drawtext_parts.append(
-        f"drawtext=text='{course_name}'"
-        f":fontsize=28:fontcolor=white:borderw=2:bordercolor=black@0.9"
-        f":box=1:boxcolor=black@0.55:boxborderw=10"
-        f":x=w-text_w-20:y=20"
+        f"drawtext=text='✓ HRD Corp Claimable'"
+        f":fontsize=32:fontcolor=white:borderw=2:bordercolor=black@0.9"
+        f":box=1:boxcolor=green@0.7:boxborderw=10"
+        f":x=(w-text_w)/2:y=h*0.88"
+        f":enable='between(t,10,20)'"
         f":font=DejaVu-Sans-Bold"
     )
 
-    # PUMO branding — bottom bar, always visible
+    # Course badge — top right always
+    drawtext_parts.append(
+        f"drawtext=text='{course_name}'"
+        f":fontsize=30:fontcolor=white:borderw=2:bordercolor=black@0.9"
+        f":box=1:boxcolor=black@0.6:boxborderw=12"
+        f":x=w-text_w-24:y=24"
+        f":font=DejaVu-Sans-Bold"
+    )
+
+    # PUMO branding — bottom always
     drawtext_parts.append(
         f"drawtext=text='{branding}'"
-        f":fontsize=26:fontcolor=white:borderw=2:bordercolor=black@0.9"
-        f":box=1:boxcolor=black@0.6:boxborderw=8"
-        f":x=(w-text_w)/2:y=h*0.935"
+        f":fontsize=28:fontcolor=white:borderw=2:bordercolor=black@0.9"
+        f":box=1:boxcolor=black@0.65:boxborderw=10"
+        f":x=(w-text_w)/2:y=h*0.938"
         f":font=DejaVu-Sans"
     )
 
-    # 4d — Final render with all overlays + voiceover
-    print("   Rendering final video with captions and branding...")
+    # 4d — Final render
+    print("   Rendering final 60-second video...")
     output = "/tmp/pumo_final.mp4"
     result = subprocess.run([
         'ffmpeg', '-y',
-        '-i', combined,
-        '-i', audio_path,
-        '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
-        '-c:v', 'libx264', '-preset', 'medium', '-crf', '24',
+        '-i', combined, '-i', audio_path,
+        '-vf', ','.join(drawtext_parts),
+        '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
         '-c:a', 'aac', '-b:a', '128k',
         '-map', '0:v:0', '-map', '1:a:0',
         '-shortest', '-movflags', '+faststart', '-r', '30',
@@ -370,61 +575,53 @@ def edit_video(clip_paths, audio_path, content):
     ], capture_output=True, text=True)
 
     if result.returncode != 0:
-        print(f"❌ FFmpeg error:\n{result.stderr[-500:]}")
+        print(f"❌ FFmpeg error:\n{result.stderr[-800:]}")
         sys.exit(1)
 
     size_mb = os.path.getsize(output) / (1024 * 1024)
-    print(f"   ✓ Video ready — {size_mb:.1f} MB")
+    print(f"   ✓ Final video ready — {size_mb:.1f} MB")
     return output
 
 
 # ============================================================
-# STEP 5 — Post directly to Instagram via Upload-Post API
+# STEP 5 — Post to Instagram
 # ============================================================
 def post_to_instagram(video_path, content):
-    print("📲 Step 5: Posting to Instagram via Upload-Post...")
+    print("📲 Step 5: Posting to Instagram...")
 
-    caption  = content['post_caption']
-    hashtags = content['hashtags']
-    full_cap = f"{caption}\n\n{hashtags}"
+    full_cap = f"{content['post_caption']}\n\n{content['hashtags']}"
 
     with open(video_path, 'rb') as f:
         response = requests.post(
             "https://api.upload-post.com/api/upload",
-            headers={
-                "Authorization": f"Apikey {UPLOAD_POST_API_KEY}"
-            },
-           data={
+            headers={"Authorization": f"Apikey {UPLOAD_POST_API_KEY}"},
+            data={
                 "title":      full_cap,
                 "user":       INSTAGRAM_USERNAME,
                 "platform[]": "instagram",
                 "media_type": "REELS"
             },
-            files={
-                "video": ("pumo_video.mp4", f, "video/mp4")
-            }
+            files={"video": ("pumo_video.mp4", f, "video/mp4")}
         )
 
     if response.status_code in (200, 201):
-        print("   ✓ Posted to Instagram successfully!")
-        print(f"   ✓ Account: @{INSTAGRAM_USERNAME}")
+        print(f"   ✓ Posted to @{INSTAGRAM_USERNAME}")
     else:
-        print(f"   ⚠️  Upload-Post response: {response.status_code}")
-        print(f"   ⚠️  Details: {response.text}")
+        print(f"   ⚠️  Upload-Post: {response.status_code} — {response.text}")
 
     return response.status_code in (200, 201)
 
 
 # ============================================================
-# MAIN — runs the full pipeline
+# MAIN
 # ============================================================
 def main():
     print("=" * 52)
-    print("  🤖  PUMO Autonomous Instagram Agent")
+    print("  🤖  PUMO Autonomous Instagram Agent v3")
     print(f"  📅  {datetime.utcnow().strftime('%A, %d %B %Y')} (UTC)")
+    print("  🎬  60-second video | zoom punches | motion mix")
     print("=" * 52)
 
-    # Check all required secrets are present
     required = {
         'ANTHROPIC_API_KEY':   ANTHROPIC_API_KEY,
         'ELEVENLABS_API_KEY':  ELEVENLABS_API_KEY,
@@ -433,22 +630,21 @@ def main():
     }
     missing = [k for k, v in required.items() if not v]
     if missing:
-        print(f"❌ Missing GitHub Secrets: {', '.join(missing)}")
-        print("   GitHub → Settings → Secrets and variables → Actions")
+        print(f"❌ Missing secrets: {', '.join(missing)}")
         sys.exit(1)
 
-    # Run the full pipeline
     content    = generate_content()
     audio_path = generate_voiceover(content['script'])
-    clip_paths = download_stock_footage(content['pexels_search'], count=4)
+    clip_paths = download_all_footage(content['course'])
     video_path = edit_video(clip_paths, audio_path, content)
     success    = post_to_instagram(video_path, content)
 
     print("\n" + "=" * 52)
-    print("  ✅  DONE!" if success else "  ⚠️  Completed with warnings.")
-    print(f"  🎬  Course:   {content['course']['name']}")
-    print(f"  🎣  Hook:     {content['hook']}")
-    print(f"  📸  Posted:   Instagram @{INSTAGRAM_USERNAME}")
+    print("  ✅  DONE!" if success else "  ⚠️  Done with warnings.")
+    print(f"  🎬  Course:  {content['course']['name']}")
+    print(f"  🎣  Hook:    {content['hook']}")
+    print(f"  📸  Posted:  @{INSTAGRAM_USERNAME}")
+    print("  ⏱️   Length:  60 seconds")
     print("=" * 52)
 
 
