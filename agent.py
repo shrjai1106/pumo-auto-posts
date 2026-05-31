@@ -135,7 +135,8 @@ def generate_voiceover(script):
     )
 
     if response.status_code != 200:
-        print(f"   ⚠️  ElevenLabs failed — using fallback TTS")
+        print(f"   ⚠️  ElevenLabs failed — status: {response.status_code}")
+        print(f"   ⚠️  Response: {response.text}")
         return generate_fallback_audio(script)
 
     audio_path = "/tmp/voiceover.mp3"
