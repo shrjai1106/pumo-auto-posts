@@ -64,7 +64,7 @@ Return ONLY a valid JSON object. No markdown. No explanation. Just the JSON.
 
 {{
   "hook": "One punchy opening line that stops scrolling. Max 10 words. English or BM.",
-  "script": "30-second spoken voiceover script. Conversational Malaysian English with 1-2 natural BM phrases. Strong hook at start. Mention HRD Corp claimable. End with call to action to contact PUMO at 016-259 2727. Under 90 words. No stage directions.",
+  "script": "30-second spoken voiceover script. Conversational Malaysian English with 1-2 natural BM phrases. Strong hook at start. Mention HRD Corp claimable. End with a call to action telling viewers to call or DM PUMO for more info. Never read out any phone number. Under 90 words. No stage directions.",
   "captions": [
     "Short sentence 1 (max 8 words)",
     "Short sentence 2",
