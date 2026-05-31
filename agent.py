@@ -1,21 +1,21 @@
 """
-PUMO Technovation - Autonomous Instagram Video Agent v3
+PUMO Technovation - Autonomous Instagram Video Agent v4
 =======================================================
-Upgrades:
-- 60-second videos
-- 8 clips per video (4 real footage + 4 motion/animation clips)
-- Zoom punch effect on each clip
-- Fast cut pacing (cuts every ~7 seconds)
-- Animated caption fade-in
-- Motion graphics mixed with real footage
-- Viral script prompt, no fake promises
+Powered by Creatomate — handles everything:
+- Stability AI generates visuals from prompts
+- ElevenLabs generates voiceover per scene
+- Bouncing captions auto-synced to voice
+- Pan/zoom animations built into template
+- 6 scenes, fully edited, rendered in the cloud
+
+Our job: Claude writes the scripts + image prompts,
+Creatomate renders, Upload-Post posts to Instagram.
 """
 
 import os
 import json
-import random
+import time
 import requests
-import subprocess
 import sys
 from datetime import datetime
 
@@ -23,172 +23,133 @@ from datetime import datetime
 # ============================================================
 # CONFIGURATION
 # ============================================================
-ANTHROPIC_API_KEY   = os.environ.get('ANTHROPIC_API_KEY', '')
-ELEVENLABS_API_KEY  = os.environ.get('ELEVENLABS_API_KEY', '')
-PEXELS_API_KEY      = os.environ.get('PEXELS_API_KEY', '')
-UPLOAD_POST_API_KEY = os.environ.get('UPLOAD_POST_API_KEY', '')
-INSTAGRAM_USERNAME  = 'Pumo_Profile'
+ANTHROPIC_API_KEY    = os.environ.get('ANTHROPIC_API_KEY', '')
+CREATOMATE_API_KEY   = os.environ.get('CREATOMATE_API_KEY', '')
+UPLOAD_POST_API_KEY  = os.environ.get('UPLOAD_POST_API_KEY', '')
+INSTAGRAM_USERNAME   = 'Pumo_Profile'
+
+CREATOMATE_TEMPLATE  = '0a352a32-f5fe-4526-b7c7-94bdcde05583'
+
 
 # ============================================================
 # COURSE ROTATION
-# Each course has:
-# - real footage searches (people, environments)
-# - motion/animation searches (abstract, tech graphics)
 # ============================================================
 COURSES = {
     0: {
         "name": "Cybersecurity",
-        "pain_point": "your company or personal data getting hacked",
+        "pain_point": "data breaches and hacking affecting companies daily",
         "outcome": "protect systems and build a career in one of the most in-demand tech fields",
-        "real_footage": [
-            "hacker dark screen code typing",
-            "cybersecurity professional working",
-            "network security monitoring screen"
-        ],
-        "motion_footage": [
-            "cyber security abstract animation",
-            "digital data flow animation",
-            "network connection glowing lines"
-        ]
+        "visual_style": "dark dramatic cyberpunk tech, glowing screens, digital security"
     },
     1: {
         "name": "Cloud and DevOps",
-        "pain_point": "being stuck maintaining old systems while the industry moves to cloud",
-        "outcome": "deploy and manage modern cloud infrastructure companies are desperate for",
-        "real_footage": [
-            "server room data centre lights",
-            "developer coding multiple screens dark",
-            "IT engineer working technology"
-        ],
-        "motion_footage": [
-            "cloud computing abstract animation",
-            "data transfer digital animation",
-            "technology network abstract blue"
-        ]
+        "pain_point": "companies struggling to modernise their outdated IT infrastructure",
+        "outcome": "deploy and manage cloud systems that companies are desperate for",
+        "visual_style": "futuristic data centre, glowing servers, blue tech aesthetic"
     },
     2: {
         "name": "AI and Prompt Engineering",
-        "pain_point": "watching AI take over jobs while not knowing how to use it yourself",
-        "outcome": "use AI as a tool that makes you more valuable not replaceable",
-        "real_footage": [
-            "person using AI laptop smiling",
-            "artificial intelligence robot hand",
-            "futuristic technology interface"
-        ],
-        "motion_footage": [
-            "artificial intelligence animation brain",
-            "neural network glowing animation",
-            "digital brain technology animation"
-        ]
+        "pain_point": "people losing jobs to AI because they don't know how to use it",
+        "outcome": "use AI as a tool that makes you irreplaceable, not replaceable",
+        "visual_style": "neural network, glowing AI brain, futuristic digital interface"
     },
     3: {
         "name": "Digital Marketing",
-        "pain_point": "businesses wasting money on content and ads nobody sees",
-        "outcome": "run campaigns that reach real people and drive real results",
-        "real_footage": [
-            "content creator filming phone",
-            "social media marketing laptop",
-            "digital marketing analytics person"
-        ],
-        "motion_footage": [
-            "social media icons animation",
-            "marketing graph growth animation",
-            "digital advertising abstract animation"
-        ]
+        "pain_point": "businesses wasting money on content nobody sees",
+        "outcome": "run campaigns that reach real audiences and drive real results",
+        "visual_style": "vibrant social media, phone screens, creative marketing energy"
     },
     4: {
         "name": "BIM and CAD",
-        "pain_point": "construction projects going over budget due to poor planning",
-        "outcome": "design and plan buildings digitally before a single brick is laid",
-        "real_footage": [
-            "architect blueprint building design",
-            "engineer CAD design computer",
-            "construction building modern"
-        ],
-        "motion_footage": [
-            "3d building model animation",
-            "architectural design animation",
-            "blueprint digital animation"
-        ]
+        "pain_point": "construction projects failing due to poor digital planning",
+        "outcome": "design buildings digitally before construction even begins",
+        "visual_style": "3D architectural blueprint, modern building design, technical precision"
     },
     5: {
         "name": "Mechanical Design CAD/CAM",
-        "pain_point": "manufacturers struggling to find people who can operate modern machines",
-        "outcome": "design parts and program machines that make things in the real world",
-        "real_footage": [
-            "mechanical engineering factory",
-            "CAD design engineering computer",
-            "manufacturing machine production"
-        ],
-        "motion_footage": [
-            "mechanical gear animation",
-            "3d mechanical design animation",
-            "engineering technology abstract"
-        ]
+        "pain_point": "manufacturers struggling to find skilled machine design talent",
+        "outcome": "design parts and program machines used in real manufacturing",
+        "visual_style": "mechanical engineering, precision gears, factory technology"
     },
     6: {
         "name": "Career Development",
-        "pain_point": "sending hundreds of job applications and getting zero responses",
+        "pain_point": "fresh grads sending hundreds of applications with zero response",
         "outcome": "position yourself as the candidate employers actually call back",
-        "real_footage": [
-            "job interview office professional",
-            "young professional working laptop",
-            "career success confident person"
-        ],
-        "motion_footage": [
-            "career growth chart animation",
-            "success achievement animation",
-            "professional network animation"
-        ]
+        "visual_style": "confident professional, modern office, career success energy"
     },
 }
 
 
 # ============================================================
-# STEP 1 — Generate 60-second viral script with Claude
+# STEP 1 — Generate 6 scene scripts + image prompts with Claude
 # ============================================================
 def generate_content():
-    print("📝 Step 1: Claude is writing today's 60-second content...")
+    print("📝 Step 1: Claude is writing 6 scenes...")
 
     day    = datetime.utcnow().weekday()
     course = COURSES[day]
 
-    prompt = f"""You are a viral Malaysian Instagram Reels content creator.
-You create content that feels real, relatable, gets saved and shared — not corporate, not salesy.
+    prompt = f"""You are a viral Malaysian Instagram Reels content creator for PUMO Technovation, 
+an IT training centre in Kuala Lumpur.
 
-Today's topic: {course['name']} course at PUMO Technovation, Kuala Lumpur.
-Real problem this solves: {course['pain_point']}
-What people actually learn: {course['outcome']}
+Course: {course['name']}
+Problem it solves: {course['pain_point']}  
+What students learn: {course['outcome']}
+Visual style for AI images: {course['visual_style']}
+
+Create a 6-scene 60-second Instagram Reel. Each scene = ~10 seconds of voiceover.
 
 STRICT RULES:
-- NO salary guarantees. NO "earn RM8000" promises. No guaranteed outcomes.
-- Sound like a real Malaysian talking to a friend, not reading an ad.
-- Use 2-3 natural BM words or phrases (lah, kan, memang, betul ke, seriously, takkan).
-- Hook must hit a real pain point or create strong curiosity — not hype.
-- This is a 60-SECOND video so the script should be 130-150 words.
-- Structure: Hook (5 sec) → Real problem (15 sec) → What you learn (25 sec) → Why it matters now (10 sec) → Soft CTA (5 sec)
-- End CTA: "DM us or reach out to PUMO to find out more" — NEVER say phone number out loud.
-- Mention HRD Corp claimable naturally — employers can subsidise this.
+- NO salary guarantees. NO "earn RM8000" type promises.
+- Sound like a real Malaysian — conversational, not corporate.
+- Use 1-2 natural BM words per scene (lah, kan, memang, betul ke, serius).
+- Voiceover per scene = 2-3 sentences max, punchy, keeps viewer hooked.
+- Scene 1: Hook — call out the real pain point, stop the scroll.
+- Scene 2: Agitate — make the problem feel real and urgent.
+- Scene 3: Introduce the solution — PUMO's course.
+- Scene 4: What you actually learn — specific skills, real talk.
+- Scene 5: Why now — HRD Corp claimable, employer can sponsor it.
+- Scene 6: Soft CTA — DM PUMO or reach out to find out more. NO phone number spoken.
+- Image prompts must be vivid, cinematic, 9:16 portrait format descriptions.
 
-Return ONLY valid JSON, no markdown, no explanation:
+Return ONLY valid JSON, no markdown:
 
 {{
-  "hook": "Opening line max 10 words — punchy, real, stops the scroll",
-  "script": "Full 60-second voiceover script. 130-150 words. Hook first. Real problem. What you learn. Why now. Soft CTA. No phone numbers spoken out loud.",
-  "captions": [
-    "Short punchy phrase 1 — max 6 words",
-    "Short punchy phrase 2",
-    "Short punchy phrase 3",
-    "Short punchy phrase 4",
-    "Short punchy phrase 5",
-    "Short punchy phrase 6",
-    "Short punchy phrase 7",
-    "Short punchy phrase 8",
-    "Short punchy phrase 9",
-    "DM PUMO to find out more"
+  "scenes": [
+    {{
+      "scene": 1,
+      "voiceover": "2-3 punchy sentences for scene 1",
+      "image_prompt": "Vivid cinematic image description for Stability AI, {course['visual_style']}, 9:16 portrait, photorealistic"
+    }},
+    {{
+      "scene": 2,
+      "voiceover": "2-3 punchy sentences for scene 2",
+      "image_prompt": "Vivid cinematic image description, {course['visual_style']}, 9:16 portrait, photorealistic"
+    }},
+    {{
+      "scene": 3,
+      "voiceover": "2-3 punchy sentences for scene 3",
+      "image_prompt": "Vivid cinematic image description, {course['visual_style']}, 9:16 portrait, photorealistic"
+    }},
+    {{
+      "scene": 4,
+      "voiceover": "2-3 punchy sentences for scene 4",
+      "image_prompt": "Vivid cinematic image description, {course['visual_style']}, 9:16 portrait, photorealistic"
+    }},
+    {{
+      "scene": 5,
+      "voiceover": "2-3 punchy sentences for scene 5. Mention HRD Corp claimable naturally.",
+      "image_prompt": "Vivid cinematic image description, {course['visual_style']}, 9:16 portrait, photorealistic"
+    }},
+    {{
+      "scene": 6,
+      "voiceover": "2-3 punchy sentences. Soft CTA — DM or reach out to PUMO. No phone number.",
+      "image_prompt": "Vivid cinematic image description, {course['visual_style']}, 9:16 portrait, photorealistic"
+    }}
   ],
   "post_caption": "Instagram caption. Real Malaysian tone. Emojis. Max 200 chars. Soft CTA. End with: 📞 016-259 2727",
-  "hashtags": "#pumotechnovation #KLtraining #hrdcorp #hrdcorpclaimable #malaysiajobs #techjobs #kerjaya #skilldevelopment #kualalumpur #malaysiatech"
+  "hashtags": "#pumotechnovation #KLtraining #hrdcorp #hrdcorpclaimable #malaysiajobs #techjobs #kerjaya #skilldevelopment #kualalumpur #malaysiatech",
+  "hook": "Scene 1 first line — 8 words max"
 }}"""
 
     response = requests.post(
@@ -200,7 +161,7 @@ Return ONLY valid JSON, no markdown, no explanation:
         },
         json={
             "model":      "claude-sonnet-4-20250514",
-            "max_tokens": 1500,
+            "max_tokens": 2000,
             "messages":   [{"role": "user", "content": prompt}]
         }
     )
@@ -214,379 +175,125 @@ Return ONLY valid JSON, no markdown, no explanation:
 
     content           = json.loads(raw.strip())
     content['course'] = course
+
     print(f"   ✓ Course: {course['name']}")
     print(f"   ✓ Hook:   {content['hook']}")
+    for i, scene in enumerate(content['scenes']):
+        print(f"   ✓ Scene {i+1}: {scene['voiceover'][:50]}...")
+
     return content
 
 
 # ============================================================
-# STEP 2 — ElevenLabs voiceover
+# STEP 2 — Send to Creatomate for rendering
+# Creatomate handles: AI images, voiceover, captions, animations
 # ============================================================
-def generate_voiceover(script):
-    print("🎙️  Step 2: Generating 60-second voiceover...")
+def render_with_creatomate(content):
+    print("🎬 Step 2: Sending to Creatomate for rendering...")
 
-    VOICE_ID = "21m00Tcm4TlvDq8ikWAM"  # Rachel
+    scenes = content['scenes']
+
+    # Build modifications — image prompt + voiceover text per scene
+    modifications = {}
+    for i, scene in enumerate(scenes[:6]):
+        scene_num = i + 1
+        modifications[f"Image-{scene_num}.source"]     = scene['image_prompt']
+        modifications[f"Voiceover-{scene_num}.source"] = scene['voiceover']
+
+    payload = {
+        "template_id":   CREATOMATE_TEMPLATE,
+        "modifications": modifications
+    }
 
     response = requests.post(
-        f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
+        "https://api.creatomate.com/v2/renders",
         headers={
-            "Accept":       "audio/mpeg",
-            "xi-api-key":   ELEVENLABS_API_KEY,
-            "Content-Type": "application/json"
+            "Content-Type":  "application/json",
+            "Authorization": f"Bearer {CREATOMATE_API_KEY}"
         },
-        json={
-            "text":     script,
-            "model_id": "eleven_multilingual_v2",
-            "voice_settings": {
-                "stability":         0.35,
-                "similarity_boost":  0.85,
-                "style":             0.25,
-                "use_speaker_boost": True
-            }
-        }
+        json=payload
     )
 
-    if response.status_code != 200:
-        print(f"   ⚠️  ElevenLabs failed: {response.status_code} — {response.text}")
-        return generate_fallback_audio(script)
-
-    audio_path = "/tmp/voiceover.mp3"
-    with open(audio_path, "wb") as f:
-        f.write(response.content)
-
-    duration = get_audio_duration(audio_path)
-    print(f"   ✓ Voiceover ready — {duration:.1f} seconds")
-    return audio_path
-
-
-def generate_fallback_audio(script):
-    audio_path = "/tmp/voiceover.wav"
-    subprocess.run(['espeak', '-w', audio_path, '-s', '145', script], capture_output=True)
-    print("   ✓ Fallback audio created")
-    return audio_path
-
-
-# ============================================================
-# STEP 3 — Download 8 clips: 4 real footage + 4 motion graphics
-# ============================================================
-def download_clip(url, path):
-    try:
-        r = requests.get(url, stream=True, timeout=30)
-        with open(path, 'wb') as f:
-            for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-        return True
-    except Exception as e:
-        print(f"   ⚠️  Download failed: {e}")
-        return False
-
-
-def search_pexels_videos(query, count=2):
-    """Search Pexels for portrait videos matching query"""
-    response = requests.get(
-        "https://api.pexels.com/videos/search",
-        headers={"Authorization": PEXELS_API_KEY},
-        params={
-            "query":       query,
-            "per_page":    count + 3,
-            "size":        "medium",
-            "orientation": "portrait"
-        }
-    )
-
-    videos     = response.json().get('videos', [])
-    downloaded = []
-
-    for i, video in enumerate(videos):
-        if len(downloaded) >= count:
-            break
-
-        files = video.get('video_files', [])
-        # Prefer portrait files
-        portrait = [f for f in files
-                    if f.get('width', 999) <= f.get('height', 0)
-                    and f.get('width', 0) >= 540]
-        chosen = portrait or files
-        if not chosen:
-            continue
-
-        chosen.sort(key=lambda x: x.get('width', 0))
-        url = chosen[min(1, len(chosen)-1)].get('link', '')
-        if not url:
-            continue
-
-        path = f"/tmp/clip_{query[:8].replace(' ','_')}_{i}.mp4"
-        if download_clip(url, path):
-            downloaded.append(path)
-
-    return downloaded
-
-
-def download_all_footage(course):
-    print("🎬 Step 3: Downloading 8 clips (real + motion graphics)...")
-
-    all_clips = []
-
-    # Download 2 real footage clips from first 2 search terms
-    for search in course['real_footage'][:2]:
-        clips = search_pexels_videos(search, count=1)
-        all_clips.extend(clips)
-        print(f"   ✓ Real: '{search[:30]}' — {len(clips)} clip(s)")
-
-    # Download 2 motion/animation clips
-    for search in course['motion_footage'][:2]:
-        clips = search_pexels_videos(search, count=1)
-        all_clips.extend(clips)
-        print(f"   ✓ Motion: '{search[:30]}' — {len(clips)} clip(s)")
-
-    # If we don't have enough clips, fill with generic footage
-    if len(all_clips) < 4:
-        print("   ⚠️  Not enough clips, adding generic footage...")
-        extra = search_pexels_videos("technology professional working", count=4-len(all_clips))
-        all_clips.extend(extra)
-
-    # Interleave real and motion clips for visual variety
-    # Pattern: real, motion, real, motion...
-    real_clips   = all_clips[:2]
-    motion_clips = all_clips[2:]
-    interleaved  = []
-
-    for i in range(max(len(real_clips), len(motion_clips))):
-        if i < len(real_clips):
-            interleaved.append(real_clips[i])
-        if i < len(motion_clips):
-            interleaved.append(motion_clips[i])
-
-    print(f"   ✓ Total: {len(interleaved)} clips ready")
-    return interleaved[:8]  # max 8 clips
-
-
-# ============================================================
-# STEP 4 — Edit video with FFmpeg
-# - Zoom punch on each clip
-# - Fast cuts every ~7 seconds
-# - Bold animated captions
-# - Interleaved real + motion footage
-# ============================================================
-def get_audio_duration(audio_path):
-    result = subprocess.run(
-        ['ffprobe', '-v', 'quiet', '-print_format', 'json', '-show_streams', audio_path],
-        capture_output=True, text=True
-    )
-    try:
-        for stream in json.loads(result.stdout).get('streams', []):
-            if stream.get('codec_type') == 'audio':
-                return float(stream.get('duration', 60))
-    except Exception:
-        pass
-    return 60.0
-
-
-def safe_text(text):
-    return (str(text)
-            .replace("\\", "\\\\")
-            .replace("'",  "\\'")
-            .replace(":",  "\\:")
-            .replace("%",  "\\%")
-            .replace("\n", " ")
-            .replace("[",  "")
-            .replace("]",  "")
-            .replace('"',  ""))
-
-
-def process_clip_with_zoom(clip_path, out_path, duration, zoom_direction="in"):
-    """
-    Scale clip to 1080x1920 and add zoom punch effect.
-    zoom_direction: "in" = slow zoom in, "out" = slow zoom out
-    Alternates between clips for visual variety.
-    """
-    # Zoom from 1.0 to 1.08 (in) or 1.08 to 1.0 (out) — subtle but dynamic
-    if zoom_direction == "in":
-        zoom_filter = (
-            "scale=1440:2560:force_original_aspect_ratio=increase,"
-            "crop=1080:1920,"
-            "setsar=1,"
-            f"zoompan=z='min(zoom+0.0008,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(duration*30)}:s=1080x1920"
-            f":fps=30"
-        )
-    else:
-        zoom_filter = (
-            "scale=1440:2560:force_original_aspect_ratio=increase,"
-            "crop=1080:1920,"
-            "setsar=1,"
-           f"zoompan=z='max(1.08-zoom*0.0008,1.0)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(duration*30)}:s=1080x1920"
-          f":fps=30"
-        )
-
-    result = subprocess.run([
-        'ffmpeg', '-y', '-i', clip_path,
-        '-vf', zoom_filter,
-        '-t', str(duration),
-        '-an',
-        '-c:v', 'libx264', '-preset', 'fast', '-crf', '28', '-r', '30',
-        out_path
-    ], capture_output=True)
-
-    if result.returncode != 0:
-        # Fallback: simple scale without zoom
-        subprocess.run([
-            'ffmpeg', '-y', '-i', clip_path,
-            '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1',
-            '-t', str(duration),
-            '-an',
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '28', '-r', '30',
-            out_path
-        ], capture_output=True)
-
-    return os.path.exists(out_path)
-
-
-def edit_video(clip_paths, audio_path, content):
-    print("✂️  Step 4: Editing 60-second video with zoom punches...")
-
-    audio_duration  = get_audio_duration(audio_path)
-    num_clips       = len(clip_paths)
-    clip_duration   = audio_duration / num_clips
-    processed_clips = []
-
-    # 4a — Process each clip with alternating zoom in/out
-    zoom_directions = ["in", "out", "in", "out", "in", "out", "in", "out"]
-
-    for i, clip_path in enumerate(clip_paths):
-        out       = f"/tmp/proc_{i}.mp4"
-        direction = zoom_directions[i % len(zoom_directions)]
-
-        success = process_clip_with_zoom(clip_path, out, clip_duration + 0.3, direction)
-        if success:
-            processed_clips.append(out)
-            print(f"   ✓ Clip {i+1}/{num_clips} — zoom {direction}")
-        else:
-            print(f"   ⚠️  Clip {i+1} failed, skipping")
-
-    if not processed_clips:
-        print("❌ No clips processed.")
+    if response.status_code not in (200, 201):
+        print(f"❌ Creatomate error: {response.status_code} — {response.text}")
         sys.exit(1)
 
-    # 4b — Concatenate
-    concat_file = "/tmp/concat_list.txt"
-    with open(concat_file, 'w') as f:
-        for clip in processed_clips:
-            f.write(f"file '{clip}'\n")
-
-    combined = "/tmp/combined.mp4"
-    subprocess.run([
-        'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_file,
-        '-c:v', 'libx264', '-preset', 'fast', '-crf', '26', '-r', '30',
-        combined
-    ], check=True, capture_output=True)
-
-    # 4c — Build caption overlays (hardcoded pixel positions, no decimals)
-    captions     = content.get('captions', [])
-    hook_text    = safe_text(content.get('hook', '')[:55])
-    course_name  = safe_text(content['course']['name'])
-    branding     = safe_text('PUMO Technovation  |  016-259 2727')
-    cap_duration = audio_duration / max(len(captions), 1)
-
-    drawtext_parts = []
-
-    # Hook — top area, first 4 seconds
-    hook_words = hook_text.split()
-    if len(hook_words) > 5:
-        mid   = len(hook_words) // 2
-        line1 = safe_text(' '.join(hook_words[:mid]))
-        line2 = safe_text(' '.join(hook_words[mid:]))
-        drawtext_parts.append(
-            f"drawtext=text='{line1}':fontsize=64:fontcolor=white"
-            f":borderw=5:bordercolor=black"
-            f":x=(w-text_w)/2:y=150:enable='between(t,0,4)'"
-            f":font=DejaVu-Sans-Bold"
-        )
-        drawtext_parts.append(
-            f"drawtext=text='{line2}':fontsize=64:fontcolor=white"
-            f":borderw=5:bordercolor=black"
-            f":x=(w-text_w)/2:y=230:enable='between(t,0,4)'"
-            f":font=DejaVu-Sans-Bold"
-        )
+    renders = response.json()
+    # Response is a list of render objects
+    if isinstance(renders, list):
+        render = renders[0]
     else:
-        drawtext_parts.append(
-            f"drawtext=text='{hook_text}':fontsize=64:fontcolor=white"
-            f":borderw=5:bordercolor=black"
-            f":x=(w-text_w)/2:y=180:enable='between(t,0,4)'"
-            f":font=DejaVu-Sans-Bold"
-        )
+        render = renders
 
-    # Timed captions — 1420px from top (lower screen), yellow bold
-    for i, caption in enumerate(captions):
-        start    = i * cap_duration
-        end      = (i + 1) * cap_duration
-        cap_text = safe_text(str(caption)[:50])
-        drawtext_parts.append(
-            f"drawtext=text='{cap_text}':fontsize=56:fontcolor=yellow"
-            f":borderw=5:bordercolor=black"
-            f":box=1:boxcolor=black@0.4:boxborderw=14"
-            f":x=(w-text_w)/2:y=1420"
-            f":enable='between(t,{int(start)},{int(end)})'"
-            f":font=DejaVu-Sans-Bold"
-        )
+    render_id = render.get('id', '')
+    print(f"   ✓ Render started — ID: {render_id}")
+    print(f"   ⏳ Waiting for Creatomate to render...")
+    print(f"   (This takes 2-5 minutes — AI generating images + voiceover + editing)")
 
-    # HRD Corp badge — green, shows 10-20 seconds, 1680px from top
-    drawtext_parts.append(
-        f"drawtext=text='HRD Corp Claimable':fontsize=32:fontcolor=white"
-        f":borderw=2:bordercolor=black"
-        f":box=1:boxcolor=0x2ecc71@0.85:boxborderw=10"
-        f":x=(w-text_w)/2:y=1680:enable='between(t,10,20)'"
-        f":font=DejaVu-Sans-Bold"
-    )
-
-    # Course badge — top right, always visible, 24px from top
-    drawtext_parts.append(
-        f"drawtext=text='{course_name}':fontsize=30:fontcolor=white"
-        f":borderw=2:bordercolor=black"
-        f":box=1:boxcolor=black@0.6:boxborderw=12"
-        f":x=w-text_w-24:y=24"
-        f":font=DejaVu-Sans-Bold"
-    )
-
-    # PUMO branding — bottom, 1800px from top
-    drawtext_parts.append(
-        f"drawtext=text='{branding}':fontsize=28:fontcolor=white"
-        f":borderw=2:bordercolor=black"
-        f":box=1:boxcolor=black@0.65:boxborderw=10"
-        f":x=(w-text_w)/2:y=1800"
-        f":font=DejaVu-Sans"
-    )
-
-     # 4d — Final render
-    print("   Rendering final 60-second video...")
-    output = "/tmp/pumo_final.mp4"
-    
-    # Write filter to a file to avoid shell escaping issues
-    filter_script = "/tmp/filters.txt"
-    with open(filter_script, 'w') as f:
-        f.write(','.join(drawtext_parts))
-    
-    result = subprocess.run([
-        'ffmpeg', '-y',
-        '-i', combined, '-i', audio_path,
-        '-filter_script:v', filter_script,
-        '-c:v', 'libx264', '-preset', 'medium', '-crf', '23',
-        '-c:a', 'aac', '-b:a', '128k',
-        '-map', '0:v:0', '-map', '1:a:0',
-        '-shortest', '-movflags', '+faststart', '-r', '30',
-        output
-    ], capture_output=True, text=True)
-
-    if result.returncode != 0:
-        print(f"❌ FFmpeg error:\n{result.stderr[-800:]}")
-        sys.exit(1)
-
-    size_mb = os.path.getsize(output) / (1024 * 1024)
-    print(f"   ✓ Final video ready — {size_mb:.1f} MB")
-    return output
+    return render_id
 
 
 # ============================================================
-# STEP 5 — Post to Instagram
+# STEP 3 — Poll Creatomate until render is complete
+# ============================================================
+def wait_for_render(render_id):
+    print("⏳ Step 3: Waiting for render to complete...")
+
+    max_attempts = 60   # 5 minutes max (60 x 5 seconds)
+    attempts     = 0
+
+    while attempts < max_attempts:
+        time.sleep(10)  # check every 10 seconds
+        attempts += 1
+
+        response = requests.get(
+            f"https://api.creatomate.com/v2/renders/{render_id}",
+            headers={"Authorization": f"Bearer {CREATOMATE_API_KEY}"}
+        )
+
+        if response.status_code != 200:
+            print(f"   ⚠️  Status check failed: {response.status_code}")
+            continue
+
+        render = response.json()
+        status = render.get('status', '')
+        print(f"   Status: {status} ({attempts * 10}s elapsed)")
+
+        if status == 'succeeded':
+            video_url = render.get('url', '')
+            print(f"   ✓ Render complete!")
+            print(f"   ✓ Video URL: {video_url}")
+            return video_url
+
+        elif status == 'failed':
+            error = render.get('error_message', 'Unknown error')
+            print(f"❌ Render failed: {error}")
+            sys.exit(1)
+
+    print("❌ Render timed out after 10 minutes")
+    sys.exit(1)
+
+
+# ============================================================
+# STEP 4 — Download rendered video
+# ============================================================
+def download_video(video_url):
+    print("📥 Step 4: Downloading rendered video...")
+
+    response = requests.get(video_url, stream=True, timeout=60)
+    video_path = "/tmp/pumo_final.mp4"
+
+    with open(video_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            f.write(chunk)
+
+    size_mb = os.path.getsize(video_path) / (1024 * 1024)
+    print(f"   ✓ Downloaded — {size_mb:.1f} MB")
+    return video_path
+
+
+# ============================================================
+# STEP 5 — Post to Instagram via Upload-Post
 # ============================================================
 def post_to_instagram(video_path, content):
     print("📲 Step 5: Posting to Instagram...")
@@ -598,17 +305,16 @@ def post_to_instagram(video_path, content):
             "https://api.upload-post.com/api/upload",
             headers={"Authorization": f"Apikey {UPLOAD_POST_API_KEY}"},
             data={
-               "title":      full_cap,
+                "title":      full_cap,
                 "user":       INSTAGRAM_USERNAME,
                 "platform[]": "instagram",
-                "media_type": "REELS",
-                "instagram_account_id": "pumo_technovation_malaysia"
+                "media_type": "REELS"
             },
             files={"video": ("pumo_video.mp4", f, "video/mp4")}
         )
 
     if response.status_code in (200, 201):
-        print(f"   ✓ Posted to @{INSTAGRAM_USERNAME}")
+        print(f"   ✓ Posted to Instagram @{INSTAGRAM_USERNAME}")
     else:
         print(f"   ⚠️  Upload-Post: {response.status_code} — {response.text}")
 
@@ -620,15 +326,14 @@ def post_to_instagram(video_path, content):
 # ============================================================
 def main():
     print("=" * 52)
-    print("  🤖  PUMO Autonomous Instagram Agent v3")
+    print("  🤖  PUMO Autonomous Instagram Agent v4")
     print(f"  📅  {datetime.utcnow().strftime('%A, %d %B %Y')} (UTC)")
-    print("  🎬  60-second video | zoom punches | motion mix")
+    print("  🎬  Powered by Creatomate + Stability AI + ElevenLabs")
     print("=" * 52)
 
     required = {
         'ANTHROPIC_API_KEY':   ANTHROPIC_API_KEY,
-        'ELEVENLABS_API_KEY':  ELEVENLABS_API_KEY,
-        'PEXELS_API_KEY':      PEXELS_API_KEY,
+        'CREATOMATE_API_KEY':  CREATOMATE_API_KEY,
         'UPLOAD_POST_API_KEY': UPLOAD_POST_API_KEY,
     }
     missing = [k for k, v in required.items() if not v]
@@ -636,18 +341,18 @@ def main():
         print(f"❌ Missing secrets: {', '.join(missing)}")
         sys.exit(1)
 
-    content    = generate_content()
-    audio_path = generate_voiceover(content['script'])
-    clip_paths = download_all_footage(content['course'])
-    video_path = edit_video(clip_paths, audio_path, content)
-    success    = post_to_instagram(video_path, content)
+    content   = generate_content()
+    render_id = render_with_creatomate(content)
+    video_url = wait_for_render(render_id)
+    video_path = download_video(video_url)
+    success   = post_to_instagram(video_path, content)
 
     print("\n" + "=" * 52)
     print("  ✅  DONE!" if success else "  ⚠️  Done with warnings.")
     print(f"  🎬  Course:  {content['course']['name']}")
     print(f"  🎣  Hook:    {content['hook']}")
-    print(f"  📸  Posted:  @{INSTAGRAM_USERNAME}")
-    print("  ⏱️   Length:  60 seconds")
+    print(f"  📸  Posted:  Instagram Reels")
+    print(f"  ✨  Engine:  Creatomate + Stability AI + ElevenLabs")
     print("=" * 52)
 
 
