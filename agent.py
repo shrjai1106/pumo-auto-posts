@@ -360,7 +360,7 @@ def edit_video(clip_paths, audio_path, content):
         'ffmpeg', '-y',
         '-i', combined,
         '-i', audio_path,
-        '-vf', ','.join(drawtext_parts),
+        '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920',
         '-c:v', 'libx264', '-preset', 'medium', '-crf', '24',
         '-c:a', 'aac', '-b:a', '128k',
         '-map', '0:v:0', '-map', '1:a:0',
