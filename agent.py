@@ -26,8 +26,8 @@ REVID_API_KEY        = os.environ.get('REVID_API_KEY', '')
 UPLOAD_POST_API_KEY  = os.environ.get('UPLOAD_POST_API_KEY', '')
 INSTAGRAM_USERNAME   = 'Pumo_Profile'
 
-# Revid V3 API endpoint
-REVID_API_URL        = 'https://www.revid.ai/api/public/v3/create'
+# Revid V3 API endpoints (correct)
+REVID_API_URL        = 'https://www.revid.ai/api/public/v3/render'
 REVID_STATUS_URL     = 'https://www.revid.ai/api/public/v3/status'
 
 # Voice ID from your Revid settings
@@ -106,7 +106,7 @@ Return ONLY valid JSON, no markdown:
   "script": "Full 60-second script here. 130-150 words.",
   "post_caption": "Instagram caption. Genuine tone. Emojis. Max 200 chars. Ends with: 📞 016-259 2727",
   "hashtags": "#pumotechnovation #KLtraining #hrdcorp #hrdcorpclaimable #malaysiajobs #techjobs #kerjaya #skilldevelopment #kualalumpur #malaysiatech",
-  "hook": "First sentence — max 8 words, stops the scroll"
+  "hook": "First sentence of script — max 8 words, stops the scroll"
 }}"""
 
     response = requests.post(
@@ -145,25 +145,24 @@ Return ONLY valid JSON, no markdown:
 def create_revid_video(content):
     print("🎬 Step 2: Sending to Revid for rendering...")
 
-    script   = content['script']
-    course   = content['course']['name']
+    script = content['script']
+    course = content['course']['name']
 
     payload = {
-        "webhookUrl": "",           # empty — we'll poll instead
-        "workflow":   "prompt-to-video",
+        "workflow": "script-to-video",
         "source": {
-            "durationSeconds": 60
+            "text": f"{script}\n\nThis video is for PUMO Technovation, an IT training centre in Kuala Lumpur. Course: {course}. Use relevant professional stock visuals."
         },
         "media": {
-            "type":         "stock-video",
-            "imageModel":   "good",
-            "videoModel":   "base"
+            "type":       "stock-video",
+            "imageModel": "good",
+            "videoModel": "base"
         },
         "voice": {
-            "enabled":          True,
-            "voiceId":          REVID_VOICE_ID,
-            "speed":            1,
-            "useLegacyModel":   False
+            "enabled":        True,
+            "voiceId":        REVID_VOICE_ID,
+            "speed":          1,
+            "useLegacyModel": False
         },
         "captions": {
             "enabled":  True,
@@ -172,9 +171,7 @@ def create_revid_video(content):
         },
         "options": {
             "promptTargetDuration": 60
-        },
-        # The actual script/prompt goes here
-        "prompt": f"{script}\n\nContext: This is for PUMO Technovation, an IT training centre in Kuala Lumpur, Malaysia. Course topic: {course}. Use relevant professional visuals."
+        }
     }
 
     response = requests.post(
@@ -189,12 +186,15 @@ def create_revid_video(content):
     print(f"   Response status: {response.status_code}")
     print(f"   Response: {response.text[:300]}")
 
-    if response.status_code not in (200, 201):
+    if response.status_code not in (200, 201, 202):
         print(f"❌ Revid error: {response.status_code} — {response.text}")
         sys.exit(1)
 
     result = response.json()
-    pid    = result.get('pid') or result.get('id') or result.get('projectId', '')
+    pid    = (result.get('pid')
+           or result.get('id')
+           or result.get('projectId')
+           or result.get('project_id', ''))
 
     if not pid:
         print(f"❌ No project ID in response: {result}")
@@ -220,24 +220,28 @@ def wait_for_revid_video(pid):
         )
 
         if response.status_code != 200:
-            print(f"   ⚠️  Status check failed: {response.status_code}")
+            print(f"   ⚠️  Status check failed: {response.status_code} — {response.text[:100]}")
             continue
 
         result    = response.json()
-        status    = result.get('status', '')
-        video_url = result.get('videoUrl') or result.get('url') or result.get('downloadUrl', '')
+        status    = (result.get('status')
+                  or result.get('state', ''))
+        video_url = (result.get('videoUrl')
+                  or result.get('url')
+                  or result.get('downloadUrl')
+                  or result.get('video_url', ''))
 
         print(f"   Status: {status} ({(attempt+1)*10}s elapsed)")
 
-        if status in ('completed', 'done', 'finished', 'succeeded') or video_url:
-            if video_url:
-                print(f"   ✓ Video ready!")
-                return video_url
-            else:
-                print(f"   ⚠️  Status done but no URL yet, waiting...")
-                continue
+        if video_url:
+            print(f"   ✓ Video ready!")
+            return video_url
 
-        elif status in ('failed', 'error'):
+        if status in ('completed', 'done', 'finished', 'succeeded'):
+            print(f"   ⚠️  Status done but no URL yet, waiting...")
+            continue
+
+        if status in ('failed', 'error'):
             error = result.get('error') or result.get('message', 'Unknown error')
             print(f"❌ Revid render failed: {error}")
             sys.exit(1)
