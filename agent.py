@@ -29,7 +29,7 @@ PEXELS_API_KEY      = os.environ.get('PEXELS_API_KEY', '')
 UPLOAD_POST_API_KEY = os.environ.get('UPLOAD_POST_API_KEY', '')
 
 # Your Upload-Post username for Instagram
-INSTAGRAM_USERNAME  = 'pumo_technovation_malaysia'
+INSTAGRAM_USERNAME  = 'Pumo_Profile'
 
 
 # ============================================================
@@ -393,10 +393,11 @@ def post_to_instagram(video_path, content):
             headers={
                 "Authorization": f"Apikey {UPLOAD_POST_API_KEY}"
             },
-            data={
+           data={
                 "title":      full_cap,
                 "user":       INSTAGRAM_USERNAME,
-                "platform[]": "instagram"
+                "platform[]": "instagram",
+                "media_type": "REELS"
             },
             files={
                 "video": ("pumo_video.mp4", f, "video/mp4")
