@@ -1,10 +1,11 @@
 """
 PUMO Technovation - Autonomous Instagram Video Agent v5
 =======================================================
-- Pexels real HD video clips (no more Stability AI)
-- Natural Malaysian English script (no fake BM)
-- Creatomate handles editing, captions, voiceover
-- ElevenLabs via Creatomate template
+- Pexels HD video clips (largest size, portrait, 1080p+)
+- Natural Malaysian English script
+- Creatomate 1080x1920 full quality render
+- Auto scene duration synced to voiceover
+- ElevenLabs voiceover via Creatomate template
 """
 
 import os
@@ -29,8 +30,6 @@ CREATOMATE_TEMPLATE  = '0a352a32-f5fe-4526-b7c7-94bdcde05583'
 
 # ============================================================
 # COURSE ROTATION
-# Each course has specific Pexels search terms per scene
-# Mix of real people + tech/environment shots
 # ============================================================
 COURSES = {
     0: {
@@ -38,12 +37,12 @@ COURSES = {
         "pain_point": "businesses losing data to cyber attacks every single day",
         "outcome": "protect systems and build a career in one of the most in-demand tech fields",
         "pexels_searches": [
-            "hacker computer dark",
-            "cybersecurity professional",
-            "data breach computer",
-            "network security technology",
-            "IT professional working",
-            "technology career office"
+            "hacker computer dark screen",
+            "cybersecurity professional working",
+            "data security technology",
+            "network protection digital",
+            "IT professional office",
+            "technology career success"
         ]
     },
     1: {
@@ -51,12 +50,12 @@ COURSES = {
         "pain_point": "companies stuck on outdated systems while competitors move to cloud",
         "outcome": "deploy and manage cloud infrastructure that every company needs right now",
         "pexels_searches": [
-            "server room technology",
-            "cloud computing developer",
-            "software engineer coding",
-            "data centre technology",
-            "developer laptop coding",
-            "technology career success"
+            "server room data centre",
+            "software developer coding",
+            "cloud technology abstract",
+            "developer laptop dark",
+            "IT engineer working",
+            "technology career office"
         ]
     },
     2: {
@@ -64,12 +63,12 @@ COURSES = {
         "pain_point": "people watching AI change every industry while not knowing how to use it",
         "outcome": "use AI tools that make you more valuable and harder to replace",
         "pexels_searches": [
-            "artificial intelligence technology",
-            "person using laptop AI",
-            "technology future digital",
+            "artificial intelligence robot",
+            "person laptop technology future",
+            "digital innovation technology",
             "professional using computer",
-            "innovation technology office",
-            "career technology success"
+            "technology office modern",
+            "career success technology"
         ]
     },
     3: {
@@ -77,12 +76,12 @@ COURSES = {
         "pain_point": "businesses spending on content and ads that nobody actually sees",
         "outcome": "create campaigns that reach real audiences and drive real business results",
         "pexels_searches": [
-            "social media marketing",
-            "content creator phone",
-            "digital marketing analytics",
-            "marketing professional laptop",
-            "social media phone scrolling",
-            "marketing success business"
+            "social media phone",
+            "content creator filming",
+            "digital marketing laptop",
+            "marketing analytics office",
+            "social media professional",
+            "business success marketing"
         ]
     },
     4: {
@@ -92,10 +91,10 @@ COURSES = {
         "pexels_searches": [
             "architect blueprint design",
             "construction building modern",
-            "engineer CAD computer",
-            "architecture design office",
-            "building construction technology",
-            "engineering career professional"
+            "engineer computer CAD",
+            "architecture office design",
+            "building construction site",
+            "engineering professional"
         ]
     },
     5: {
@@ -105,10 +104,10 @@ COURSES = {
         "pexels_searches": [
             "mechanical engineering factory",
             "manufacturing machine production",
-            "engineer design computer",
-            "industrial technology machine",
+            "engineer design office",
+            "industrial technology",
             "engineering professional working",
-            "manufacturing career technology"
+            "manufacturing career"
         ]
     },
     6: {
@@ -119,8 +118,8 @@ COURSES = {
             "job interview professional",
             "young professional office",
             "career success confident",
-            "resume laptop professional",
-            "business meeting office",
+            "business meeting professional",
+            "resume laptop office",
             "career growth success"
         ]
     },
@@ -128,87 +127,8 @@ COURSES = {
 
 
 # ============================================================
-# STEP 1 — Get real Pexels video URLs for each scene
-# ============================================================
-def get_pexels_video_url(search_term):
-    """Search Pexels and return a direct HD portrait video URL"""
-    try:
-        response = requests.get(
-            "https://api.pexels.com/videos/search",
-            headers={"Authorization": PEXELS_API_KEY},
-            params={
-                "query":       search_term,
-                "per_page":    8,
-                "orientation": "portrait",
-                "size":        "medium"
-            },
-            timeout=15
-        )
-
-        videos = response.json().get('videos', [])
-        if not videos:
-            # Fallback search
-            response = requests.get(
-                "https://api.pexels.com/videos/search",
-                headers={"Authorization": PEXELS_API_KEY},
-                params={"query": "professional office technology", "per_page": 5, "orientation": "portrait"},
-                timeout=15
-            )
-            videos = response.json().get('videos', [])
-
-        if not videos:
-            return None
-
-        # Pick a random video from results for variety
-        video = random.choice(videos[:5])
-        files = video.get('video_files', [])
-
-        # Prefer HD portrait files
-        portrait = [f for f in files
-                    if f.get('width', 999) <= f.get('height', 0)
-                    and f.get('width', 0) >= 720]
-
-        if not portrait:
-            portrait = [f for f in files if f.get('width', 0) >= 540]
-
-        if not portrait:
-            portrait = files
-
-        if not portrait:
-            return None
-
-        # Sort by quality — pick medium quality
-        portrait.sort(key=lambda x: x.get('width', 0), reverse=True)
-        chosen = portrait[min(1, len(portrait)-1)]
-        return chosen.get('link', None)
-
-    except Exception as e:
-        print(f"   ⚠️  Pexels search failed for '{search_term}': {e}")
-        return None
-
-
-def get_all_pexels_videos(course):
-    """Get 6 video URLs for the 6 scenes"""
-    print("🎬 Step 2: Fetching HD video clips from Pexels...")
-    video_urls = []
-
-    for i, search in enumerate(course['pexels_searches'][:6]):
-        url = get_pexels_video_url(search)
-        if url:
-            video_urls.append(url)
-            print(f"   ✓ Scene {i+1}: '{search[:35]}' — got clip")
-        else:
-            # Use a generic fallback
-            fallback = get_pexels_video_url("professional office")
-            video_urls.append(fallback or "")
-            print(f"   ⚠️  Scene {i+1}: using fallback clip")
-
-    return video_urls
-
-
-# ============================================================
-# STEP 2 — Generate 6 scene scripts with Claude
-# Natural Malaysian English — no fake BM
+# STEP 1 — Generate content with Claude
+# Natural Malaysian English — no BM slang
 # ============================================================
 def generate_content():
     print("📝 Step 1: Claude is writing 6 scenes...")
@@ -216,42 +136,42 @@ def generate_content():
     day    = datetime.utcnow().weekday()
     course = COURSES[day]
 
-    prompt = f"""You are a content writer for PUMO Technovation, an IT training centre in Kuala Lumpur, Malaysia.
+    prompt = f"""You are a content writer for PUMO Technovation, an IT training centre in Kuala Lumpur.
 
 Write a 6-scene 60-second Instagram Reel script for: {course['name']} course.
 Real problem: {course['pain_point']}
 What students learn: {course['outcome']}
 
-VOICE & TONE RULES:
-- Write in natural, clear Malaysian English — the way an educated Malaysian speaks to peers.
-- NO Bahasa Malaysia words. NO "lah", "kan", "memang", "lor" or any BM slang.
-- Sound genuine and direct — like a trusted friend giving honest career advice.
-- Conversational but confident. Not corporate. Not robotic.
-- Short sentences. High energy. Every line should make the viewer want to hear the next one.
+VOICE AND TONE:
+- Natural, clear Malaysian English — how an educated Malaysian speaks to peers.
+- NO Bahasa Malaysia words. NO lah, kan, memang, lor, betul ke. None.
+- Genuine and direct — like a trusted friend giving honest career advice.
+- Short punchy sentences. High energy. Every line makes the viewer want to hear the next.
+- Not corporate. Not robotic. Real talk.
 
 CONTENT RULES:
-- NO salary guarantees. NO "earn RM8000" type promises.
-- Talk about real skills and real opportunities — let people draw their own conclusions.
-- Scene 1: Hook — call out the real pain point in one punchy line. Stop the scroll.
-- Scene 2: Agitate — make the problem feel urgent and real.
-- Scene 3: Introduce PUMO's solution naturally.
-- Scene 4: Specific skills students learn — make it concrete.
-- Scene 5: Mention HRD Corp claimable naturally — employers can fund this.
-- Scene 6: Soft CTA — reach out to PUMO to find out more. No phone number spoken.
-- Each scene = 2-3 short sentences. Max 25 words per scene.
+- NO salary guarantees. NO income promises of any kind.
+- Talk about real skills and real opportunities only.
+- Scene 1: Hook — one punchy line that calls out the real pain point. Stop the scroll.
+- Scene 2: Agitate the problem — make it feel urgent and real.
+- Scene 3: Introduce PUMO's course as the solution — keep it natural.
+- Scene 4: Specific skills students learn — concrete, not vague.
+- Scene 5: Why act now — mention HRD Corp claimable naturally. Employers can fund this.
+- Scene 6: Soft CTA — reach out to PUMO to find out more. No phone number spoken aloud.
+- Each scene = 2-3 short sentences maximum. Under 30 words per scene.
 
-Return ONLY valid JSON, no markdown:
+Return ONLY valid JSON, no markdown, no explanation:
 
 {{
   "scenes": [
-    {{"scene": 1, "voiceover": "2-3 short punchy sentences"}},
-    {{"scene": 2, "voiceover": "2-3 short punchy sentences"}},
-    {{"scene": 3, "voiceover": "2-3 short punchy sentences"}},
-    {{"scene": 4, "voiceover": "2-3 short punchy sentences"}},
-    {{"scene": 5, "voiceover": "2-3 short punchy sentences. Mention HRD Corp claimable."}},
-    {{"scene": 6, "voiceover": "2-3 short punchy sentences. Soft CTA to reach out to PUMO."}}
+    {{"scene": 1, "voiceover": "scene 1 script here"}},
+    {{"scene": 2, "voiceover": "scene 2 script here"}},
+    {{"scene": 3, "voiceover": "scene 3 script here"}},
+    {{"scene": 4, "voiceover": "scene 4 script here"}},
+    {{"scene": 5, "voiceover": "scene 5 script here"}},
+    {{"scene": 6, "voiceover": "scene 6 script here"}}
   ],
-  "post_caption": "Instagram caption. Genuine Malaysian tone. Emojis. Max 200 chars. Ends with: 📞 016-259 2727",
+  "post_caption": "Instagram caption. Genuine tone. Emojis. Max 200 chars. Ends with: 📞 016-259 2727",
   "hashtags": "#pumotechnovation #KLtraining #hrdcorp #hrdcorpclaimable #malaysiajobs #techjobs #kerjaya #skilldevelopment #kualalumpur #malaysiatech",
   "hook": "First line of scene 1 — max 8 words"
 }}"""
@@ -289,22 +209,116 @@ Return ONLY valid JSON, no markdown:
 
 
 # ============================================================
+# STEP 2 — Fetch HD Pexels video URLs
+# Request largest size, filter for 1080p+ portrait
+# ============================================================
+def get_pexels_video_url(search_term):
+    """Search Pexels and return the best HD portrait video URL"""
+    try:
+        response = requests.get(
+            "https://api.pexels.com/videos/search",
+            headers={"Authorization": PEXELS_API_KEY},
+            params={
+                "query":       search_term,
+                "per_page":    15,
+                "orientation": "portrait",
+                "size":        "large"   # request large/HD clips
+            },
+            timeout=15
+        )
+
+        videos = response.json().get('videos', [])
+
+        # Fallback if no results
+        if not videos:
+            response = requests.get(
+                "https://api.pexels.com/videos/search",
+                headers={"Authorization": PEXELS_API_KEY},
+                params={
+                    "query":       "professional office technology",
+                    "per_page":    10,
+                    "orientation": "portrait",
+                    "size":        "large"
+                },
+                timeout=15
+            )
+            videos = response.json().get('videos', [])
+
+        if not videos:
+            return None
+
+        # Pick randomly from top 5 for variety
+        video = random.choice(videos[:5])
+        files = video.get('video_files', [])
+
+        # Priority 1: Full HD portrait (1080x1920 or similar)
+        hd = [f for f in files
+              if f.get('width', 0) >= 1080
+              and f.get('height', 0) >= f.get('width', 0)]
+
+        # Priority 2: 720p portrait
+        if not hd:
+            hd = [f for f in files
+                  if f.get('width', 0) >= 720
+                  and f.get('height', 0) >= f.get('width', 0)]
+
+        # Priority 3: any portrait
+        if not hd:
+            hd = [f for f in files
+                  if f.get('height', 0) >= f.get('width', 0)]
+
+        # Last resort: any file
+        if not hd:
+            hd = files
+
+        if not hd:
+            return None
+
+        # Sort by resolution — pick the highest quality
+        hd.sort(
+            key=lambda x: x.get('width', 0) * x.get('height', 0),
+            reverse=True
+        )
+        return hd[0].get('link', None)
+
+    except Exception as e:
+        print(f"   ⚠️  Pexels failed for '{search_term}': {e}")
+        return None
+
+
+def get_all_pexels_videos(course):
+    """Get 6 HD video URLs for the 6 scenes"""
+    print("🎬 Step 2: Fetching HD video clips from Pexels...")
+    video_urls = []
+
+    for i, search in enumerate(course['pexels_searches'][:6]):
+        url = get_pexels_video_url(search)
+        if url:
+            video_urls.append(url)
+            print(f"   ✓ Scene {i+1}: '{search[:35]}' — HD clip found")
+        else:
+            fallback = get_pexels_video_url("professional working office")
+            video_urls.append(fallback or "")
+            print(f"   ⚠️  Scene {i+1}: fallback clip used")
+
+    return video_urls
+
+
+# ============================================================
 # STEP 3 — Send to Creatomate
-# Pexels video URLs as sources + voiceover text
+# Pass HD video URLs + voiceover text
 # ============================================================
 def render_with_creatomate(content, video_urls):
     print("🎬 Step 3: Sending to Creatomate for rendering...")
 
-    scenes = content['scenes']
-
+    scenes        = content['scenes']
     modifications = {}
+
     for i, scene in enumerate(scenes[:6]):
-        scene_num = i + 1
-        # Real Pexels video as background
+        n = i + 1
         if i < len(video_urls) and video_urls[i]:
-            modifications[f"Image-{scene_num}.source"] = video_urls[i]
-        # Voiceover text — ElevenLabs in template handles TTS
-        modifications[f"Voiceover-{scene_num}.source"] = scene['voiceover']
+            modifications[f"Image-{n}.source"]     = video_urls[i]
+        modifications[f"Voiceover-{n}.source"] = scene['voiceover']
 
     payload = {
         "template_id":   CREATOMATE_TEMPLATE,
@@ -325,14 +339,11 @@ def render_with_creatomate(content, video_urls):
         sys.exit(1)
 
     renders = response.json()
-    if isinstance(renders, list):
-        render = renders[0]
-    else:
-        render = renders
+    render  = renders[0] if isinstance(renders, list) else renders
 
     render_id = render.get('id', '')
     print(f"   ✓ Render started — ID: {render_id}")
-    print(f"   ⏳ Creatomate is rendering (2-5 minutes)...")
+    print(f"   ⏳ Rendering in progress (3-6 minutes)...")
     return render_id
 
 
@@ -342,7 +353,7 @@ def render_with_creatomate(content, video_urls):
 def wait_for_render(render_id):
     print("⏳ Step 4: Waiting for render...")
 
-    for attempt in range(60):
+    for attempt in range(72):  # 12 minutes max
         time.sleep(10)
 
         response = requests.get(
@@ -360,14 +371,14 @@ def wait_for_render(render_id):
 
         if status == 'succeeded':
             video_url = render.get('url', '')
-            print(f"   ✓ Render complete!")
+            print(f"   ✓ Render complete — {video_url[:60]}...")
             return video_url
 
         elif status == 'failed':
             print(f"❌ Render failed: {render.get('error_message', 'Unknown')}")
             sys.exit(1)
 
-    print("❌ Timed out after 10 minutes")
+    print("❌ Timed out after 12 minutes")
     sys.exit(1)
 
 
@@ -377,7 +388,7 @@ def wait_for_render(render_id):
 def download_video(video_url):
     print("📥 Step 5: Downloading rendered video...")
 
-    response   = requests.get(video_url, stream=True, timeout=60)
+    response   = requests.get(video_url, stream=True, timeout=120)
     video_path = "/tmp/pumo_final.mp4"
 
     with open(video_path, 'wb') as f:
@@ -425,7 +436,7 @@ def main():
     print("=" * 52)
     print("  🤖  PUMO Autonomous Instagram Agent v5")
     print(f"  📅  {datetime.utcnow().strftime('%A, %d %B %Y')} (UTC)")
-    print("  🎬  Pexels HD video + Creatomate + ElevenLabs")
+    print("  🎬  1080x1920 HD · Pexels · Creatomate · ElevenLabs")
     print("=" * 52)
 
     required = {
@@ -451,7 +462,7 @@ def main():
     print(f"  🎬  Course:  {content['course']['name']}")
     print(f"  🎣  Hook:    {content['hook']}")
     print(f"  📸  Posted:  Instagram Reels")
-    print(f"  🎥  Footage: Pexels HD")
+    print(f"  📐  Quality: 1080x1920 HD")
     print("=" * 52)
 
 
