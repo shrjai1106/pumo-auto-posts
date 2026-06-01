@@ -1,31 +1,56 @@
-name: PUMO Daily Instagram Agent
+name: PUMO Daily Instagram Agent v7
+
 on:
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '0 1 * * *'   # 9AM Malaysia time daily
   workflow_dispatch:
+
 jobs:
   create-and-post:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: Install FFmpeg and fonts
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg fonts-dejavu espeak
+          sudo apt-get install -y ffmpeg chromium-browser fonts-dejavu
+
       - name: Install Python dependencies
         run: pip install requests
+
+      - name: Install Remotion dependencies
+        run: |
+          cd remotion
+          npm install
+
       - name: Run PUMO Agent
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-          REVID_API_KEY:       ${{ secrets.REVID_API_KEY }}
-          CREATOMATE_API_KEY:  ${{ secrets.CREATOMATE_API_KEY }}
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
+          ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
+          REPLICATE_API_KEY:   ${{ secrets.REPLICATE_API_KEY }}
+          PEXELS_API_KEY:      ${{ secrets.PEXELS_API_KEY }}
           UPLOAD_POST_API_KEY: ${{ secrets.UPLOAD_POST_API_KEY }}
         run: python agent.py
+
+      - name: Report on failure
+        if: failure()
+        run: |
+          echo "❌ Agent failed. Check logs above."
+          echo "Common fixes:"
+          echo "  - Verify all 5 secrets are set in GitHub Settings"
+          echo "  - Check Replicate balance at replicate.com/account/billing"
+          echo "  - Check ElevenLabs credits at elevenlabs.io"
