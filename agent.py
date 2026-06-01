@@ -99,7 +99,7 @@ def preflight_check():
         else: errors.append(f"Replicate invalid: {r.status_code}")
     except Exception as e: errors.append(f"Replicate unreachable: {e}")
 
-try:
+    try:
         r = requests.get("https://api.elevenlabs.io/v1/models",
             headers={"xi-api-key": ELEVENLABS_API_KEY}, timeout=10)
         if r.status_code == 200:
