@@ -2,14 +2,16 @@
   "name": "pumo-remotion",
   "version": "1.0.0",
   "scripts": {
-    "build": "remotion render src/index.tsx PUMOVideo",
-    "studio": "remotion studio src/index.tsx"
+    "build": "remotion render src/index.tsx PUMOVideo"
   },
   "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0",
-    "remotion": "^4.0.0",
-    "@remotion/captions": "^4.0.0"
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "remotion": "4.0.290",
+    "@remotion/bundler": "4.0.290",
+    "@remotion/renderer": "4.0.290",
+    "@remotion/captions": "4.0.290",
+    "@remotion/cli": "4.0.290"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
