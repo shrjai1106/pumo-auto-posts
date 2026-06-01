@@ -1,10 +1,11 @@
+import React from "react";
 import { Composition } from "remotion";
 import { PUMOVideo } from "./PUMOVideo";
 import dataJson from "../public/data.json";
 
 export const RemotionRoot: React.FC = () => {
   const fps              = 30;
-  const durationInFrames = Math.ceil(dataJson.total_duration * fps);
+  const durationInFrames = Math.ceil((dataJson.total_duration || 60) * fps);
 
   return (
     <Composition
