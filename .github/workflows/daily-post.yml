@@ -36,6 +36,11 @@ jobs:
         run: |
           cd remotion
           npm install
+          npm install --save-dev @remotion/cli
+
+      - name: Install Chromium for Remotion
+        run: npx playwright install chromium
+        working-directory: remotion
 
       - name: Run PUMO Agent
         env:
