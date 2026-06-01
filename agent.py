@@ -99,16 +99,15 @@ def preflight_check():
         else: errors.append(f"Replicate invalid: {r.status_code}")
     except Exception as e: errors.append(f"Replicate unreachable: {e}")
 
-    try:
+try:
         r = requests.get("https://api.elevenlabs.io/v1/models",
             headers={"xi-api-key": ELEVENLABS_API_KEY}, timeout=10)
         if r.status_code == 200:
-            sub  = r.json().get('subscription', {})
-            rem  = sub.get('character_limit',0) - sub.get('character_count',0)
-            print(f"   ✓ ElevenLabs OK — {rem} chars remaining")
-            if rem < 500: errors.append(f"ElevenLabs nearly out: {rem} chars left")
-        else: errors.append(f"ElevenLabs invalid: {r.status_code}")
-    except Exception as e: errors.append(f"ElevenLabs unreachable: {e}")
+            print("   ✓ ElevenLabs OK")
+        else:
+            errors.append(f"ElevenLabs invalid: {r.status_code}")
+    except Exception as e:
+        errors.append(f"ElevenLabs unreachable: {e}")
 
     try:
         r = requests.get("https://api.pexels.com/videos/search",
