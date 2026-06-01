@@ -536,7 +536,7 @@ def render_with_remotion(clips, audio_path, word_timestamps, duration, content):
     # Render with Remotion
     output_path = "/tmp/pumo_final.mp4"
     result = subprocess.run([
-        'npx', 'remotion', 'render',
+        'npx', '@remotion/cli', 'render',
         'remotion/src/index.tsx',
         'PUMOVideo',
         output_path,
