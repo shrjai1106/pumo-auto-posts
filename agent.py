@@ -493,9 +493,9 @@ def get_all_clips(content):
 def render_with_remotion(clips, audio_path, word_timestamps, duration, content):
     print("✂️  Step 5: Remotion rendering video...")
 
-    # Build scene data for Remotion
+    # Build scene data
     scenes = []
-    scene_duration = duration / 6  # equal split across 6 scenes
+    scene_duration = duration / 6
 
     for i in range(1, 7):
         scene_script = content['scenes'][i-1]['script'] if i-1 < len(content['scenes']) else ''
@@ -508,10 +508,9 @@ def render_with_remotion(clips, audio_path, word_timestamps, duration, content):
             "is_ai":      i in [1, 4, 6]
         })
 
-    # Save Remotion input data
     remotion_data = {
         "scenes":          scenes,
-        "audio_path":      audio_path,
+        "audio_path":      "voiceover.mp3",
         "word_timestamps": word_timestamps,
         "total_duration":  duration,
         "course_name":     content['course']['name'],
@@ -519,35 +518,41 @@ def render_with_remotion(clips, audio_path, word_timestamps, duration, content):
         "branding":        "PUMO Technovation  |  016-259 2727"
     }
 
-    data_path = "/tmp/remotion_data.json"
+    # Write data to Remotion public folder
+    data_path = "remotion/public/data.json"
     with open(data_path, 'w') as f:
         json.dump(remotion_data, f)
 
-    # Copy data to Remotion project
-    subprocess.run(['cp', data_path, 'remotion/public/data.json'], check=True)
+    # Copy audio and clips to Remotion public folder
     subprocess.run(['cp', audio_path, 'remotion/public/voiceover.mp3'], check=True)
-
-    # Copy all clips to Remotion public folder
     for i in range(1, 7):
         clip = clips.get(i)
         if clip and os.path.exists(clip):
             subprocess.run(['cp', clip, f'remotion/public/scene_{i}.mp4'], check=True)
 
-    # Render with Remotion
+    # Install Remotion CLI explicitly
+    subprocess.run(
+        ['npm', 'install', '--save-dev', '@remotion/cli@4.0.290'],
+        cwd='remotion',
+        check=True,
+        capture_output=True
+    )
+
+    # Render
     output_path = "/tmp/pumo_final.mp4"
-    result = subprocess.run([
-        'npx', '@remotion/cli', 'render',
-        'remotion/src/index.tsx',
-        'PUMOVideo',
-        output_path,
-        '--props', data_path,
-        '--codec', 'h264',
-        '--video-bitrate', '8000K',
-        '--crf', '18'
-    ], capture_output=True, text=True, cwd=os.getcwd())
+    result = subprocess.run(
+        ['./node_modules/.bin/remotion', 'render',
+         'src/index.tsx', 'PUMOVideo', output_path,
+         '--codec', 'h264',
+         '--video-bitrate', '8000K'],
+        cwd='remotion',
+        capture_output=True,
+        text=True
+    )
 
     if result.returncode != 0:
-        print(f"❌ Remotion error:\n{result.stderr[-500:]}")
+        print(f"❌ Remotion error:\n{result.stderr[-800:]}")
+        print(f"stdout:\n{result.stdout[-400:]}")
         sys.exit(1)
 
     size_mb = os.path.getsize(output_path) / (1024 * 1024)
