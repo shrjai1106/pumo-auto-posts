@@ -2,7 +2,7 @@ name: PUMO Daily Instagram Agent v7
 
 on:
   schedule:
-    - cron: '0 1 * * *'   # 9AM Malaysia time daily
+    - cron: '0 1 * * *'
   workflow_dispatch:
 
 jobs:
@@ -27,20 +27,16 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg chromium-browser fonts-dejavu
+          sudo apt-get install -y ffmpeg fonts-dejavu
 
       - name: Install Python dependencies
         run: pip install requests
 
       - name: Install Remotion dependencies
-        run: |
-          cd remotion
-          npm install
-          npm install --save-dev @remotion/cli
-
-      - name: Install Chromium for Remotion
-        run: npx playwright install chromium
         working-directory: remotion
+        run: |
+          npm install
+          npm install --save-dev @remotion/cli@4.0.290
 
       - name: Run PUMO Agent
         env:
@@ -53,9 +49,4 @@ jobs:
 
       - name: Report on failure
         if: failure()
-        run: |
-          echo "❌ Agent failed. Check logs above."
-          echo "Common fixes:"
-          echo "  - Verify all 5 secrets are set in GitHub Settings"
-          echo "  - Check Replicate balance at replicate.com/account/billing"
-          echo "  - Check ElevenLabs credits at elevenlabs.io"
+        run: echo "❌ Agent failed. Check logs above."
