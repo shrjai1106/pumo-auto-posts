@@ -100,7 +100,7 @@ def preflight_check():
     except Exception as e: errors.append(f"Replicate unreachable: {e}")
 
     try:
-        r = requests.get("https://api.elevenlabs.io/v1/user",
+        r = requests.get("https://api.elevenlabs.io/v1/models",
             headers={"xi-api-key": ELEVENLABS_API_KEY}, timeout=10)
         if r.status_code == 200:
             sub  = r.json().get('subscription', {})
